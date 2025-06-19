@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>com.wenx</groupId>
+        <artifactId>v3-cloud</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>v3-frame</artifactId>
+    <packaging>pom</packaging>
+    <name>v3-frame</name>
+    <description>V3 框架核心组件</description>
+
+    <modules>
+        <module>v3-core</module>
+        <module>v3-data</module>
+        <module>v3-redis</module>
+        <module>v3-secure</module>
+        <module>v3-seata</module>
+        <module>v3-web</module>
+    </modules>
+
+
+</project>

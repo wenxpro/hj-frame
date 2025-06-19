@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <parent>
+        <groupId>com.wenx</groupId>
+        <artifactId>v3-frame</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    
+    <artifactId>v3-redis</artifactId>
+    <packaging>jar</packaging>
+    <name>v3-redis</name>
+    <description>V3 Redis组件</description>
+    
+    <dependencies>
+        <!-- V3 Core -->
+        <dependency>
+            <groupId>com.wenx</groupId>
+            <artifactId>v3-core</artifactId>
+        </dependency>
+        
+        <!-- Redis 支持 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Redis 连接池 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+        
+        <!-- Redisson（可选） -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>
