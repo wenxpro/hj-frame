@@ -4,10 +4,13 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URLDecoder;
 import java.util.Enumeration;
+import java.util.Map;
 
 /**
  * @author wenx
@@ -49,6 +52,52 @@ public class HttpUtil {
             //log.error("Exception:", e);
         }
         //log.debug(ret);
+        return ret;
+    }
+
+    /**
+     * 发送post表单数据，支持自定义headers
+     *
+     * @param url     请求URL
+     * @param params  表单参数
+     * @param headers 自定义请求头
+     * @return 响应结果
+     */
+    public static String post(String url, Map<String, Object> params, Map<String, String> headers) {
+        String ret = null;
+        try {
+            RestTemplate client = new RestTemplate();
+            
+            // 构建HttpHeaders
+            HttpHeaders httpHeaders = new HttpHeaders();
+            if (headers != null) {
+                headers.forEach(httpHeaders::set);
+            }
+            
+            // 设置Content-Type为表单格式（如果未设置）
+            if (httpHeaders.getContentType() == null) {
+                httpHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            }
+            
+            // 构建表单参数
+            MultiValueMap<String, String> formParams = new LinkedMultiValueMap<>();
+            if (params != null) {
+                params.forEach((key, value) -> {
+                    if (value != null) {
+                        formParams.add(key, value.toString());
+                    }
+                });
+            }
+            
+            HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(formParams, httpHeaders);
+            ResponseEntity<String> response = client.exchange(url, HttpMethod.POST, httpEntity, String.class);
+            
+            if (response.getStatusCode().is2xxSuccessful()) {
+                ret = response.getBody();
+            }
+        } catch (Exception e) {
+            //log.error("Exception:", e);
+        }
         return ret;
     }
 

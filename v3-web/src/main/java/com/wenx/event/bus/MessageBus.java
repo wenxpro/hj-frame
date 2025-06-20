@@ -4,6 +4,7 @@ import com.wenx.event.Message;
 import com.wenx.event.MessageHandler;
 import com.wenx.v3core.error.ServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,7 @@ public class MessageBus {
     /**
      * 发送消息（命令或查询）
      */
-    @SuppressWarnings("unchecked")
+    @SneakyThrows
     public <T, R> R send(T message) {
         log.debug("发送消息: {}", message.getClass().getSimpleName());
         
@@ -62,24 +63,19 @@ public class MessageBus {
         // 验证处理器类型匹配
         validateHandlerMessageTypeMatch(message, handler);
 
+        R result;
+
+        // 尝试调用统一处理器的handle(Message)方法
         try {
-            R result;
-            
-            // 尝试调用统一处理器的handle(Message)方法
-            try {
-                Method handleMethod = handler.getClass().getMethod("handle", Message.class);
-                result = (R) handleMethod.invoke(handler, message);
-            } catch (NoSuchMethodException e) {
-                // 回退到标准MessageHandler处理
-                result = (R) handler.getClass().getMethod("handle", message.getClass()).invoke(handler, message);
-            }
-            
-            log.debug("消息处理完成: {}", message.getClass().getSimpleName());
-            return result;
-        } catch (Exception e) {
-            log.error("消息处理失败: {}", message.getClass().getSimpleName(), e);
-            throw new RuntimeException("消息处理失败", e);
+            Method handleMethod = handler.getClass().getMethod("handle", Message.class);
+            result = (R) handleMethod.invoke(handler, message);
+        } catch (NoSuchMethodException e) {
+            // 回退到标准MessageHandler处理
+            result = (R) handler.getClass().getMethod("handle", message.getClass()).invoke(handler, message);
         }
+
+        log.debug("消息处理完成: {}", message.getClass().getSimpleName());
+        return result;
     }
     
     /**
