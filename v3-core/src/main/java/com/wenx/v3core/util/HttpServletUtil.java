@@ -1,5 +1,6 @@
 package com.wenx.v3core.util;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
 import com.wenx.v3core.error.ServerExceptionEnum;
 import com.wenx.v3core.error.ServiceException;
@@ -61,5 +62,28 @@ public class HttpServletUtil {
         response.getWriter().print(string);
         response.getWriter().flush();
         response.getWriter().close();
+    }
+
+    /**
+     * 获取客户端IP
+     */
+    public static String getClientIp(HttpServletRequest request) {
+        if (request == null) return "unknown";
+
+        String ip = request.getHeader("X-Forwarded-For");
+        if (StrUtil.isBlank(ip) || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (StrUtil.isBlank(ip) || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        return ip;
+    }
+
+    /**
+     * 获取用户代理
+     */
+    public static String getUserAgent(HttpServletRequest request) {
+        return request != null ? request.getHeader("User-Agent") : "unknown";
     }
 }

@@ -2,6 +2,7 @@ package com.wenx.handler;
 
 import com.wenx.consts.OperationConst;
 import com.wenx.v3core.error.BusinessException;
+import com.wenx.v3core.error.ServiceException;
 import com.wenx.v3core.consts.SortConstant;
 import com.wenx.v3core.response.R;
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,6 +50,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public R exceptionHandler(BusinessException e, HttpServletResponse response) {
         log.warn("业务异常: {}", e.getMessage());
+        return R.failed(e.getMessage());
+    }
+
+    /**
+     * 服务异常处理
+     */
+    @ResponseBody
+    @ExceptionHandler(ServiceException.class)
+    public R exceptionHandler(ServiceException e, HttpServletResponse response) {
+        log.warn("服务异常: {}", e.getMessage());
         return R.failed(e.getMessage());
     }
 
