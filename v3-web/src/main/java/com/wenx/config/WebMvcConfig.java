@@ -1,6 +1,6 @@
 package com.wenx.config;
 
-import com.wenx.v3core.intercepter.RequestInterceptor;
+import com.wenx.v3log.RequestInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.FormContentFilter;

@@ -1,6 +1,5 @@
-package com.wenx.v3core.util;
+package com.wenx.v3log;
 
-import com.wenx.v3core.intercepter.RequestInterceptor;
 import cn.hutool.core.util.StrUtil;
 import lombok.extern.slf4j.Slf4j;
 

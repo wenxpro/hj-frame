@@ -1,4 +1,4 @@
-package com.wenx.v3log.utl;
+package com.wenx.v3core.util;
 
 import cn.hutool.core.util.StrUtil;
 import com.alibaba.fastjson2.JSON;
