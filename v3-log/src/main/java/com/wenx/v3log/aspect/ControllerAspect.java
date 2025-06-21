@@ -23,15 +23,6 @@ import java.util.Objects;
 
 /**
  * Controller层HTTP请求监控切面
- * 
- * <p>核心职责：</p>
- * <ul>
- *   <li>记录HTTP请求详细日志</li>
- *   <li>监控Controller方法性能</li>
- *   <li>记录请求参数和响应信息</li>
- *   <li>性能预警和分析</li>
- * </ul>
- * 
  * <p>与RequestInterceptor的职责分工：</p>
  * <ul>
  *   <li>RequestInterceptor：负责追踪ID生成、MDC管理</li>

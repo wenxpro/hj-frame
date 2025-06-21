@@ -1,6 +1,5 @@
 package com.wenx.v3log.aspect;
 
-import com.wenx.v3log.utl.HttpServletUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -8,6 +7,8 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import static com.wenx.v3log.RequestInterceptor.REQUEST_ID_KEY;
 
@@ -98,16 +99,27 @@ public class ServiceAspect {
         }
         
         try {
-            HttpServletRequest request = HttpServletUtil.getRequest();
-            if (request != null) {
-                String requestId = request.getHeader(REQUEST_ID_KEY);
-                if (requestId != null) {
-                    log.debug("[Service] {} 请求ID: {}", methodSignature, requestId);
-                }
+            ServletRequestAttributes attributes = (ServletRequestAttributes) 
+                    RequestContextHolder.getRequestAttributes();
+            
+            if (attributes == null) {
+                log.debug("[Service] {} 非Web环境调用", methodSignature);
+                return;
+            }
+            
+            HttpServletRequest request = attributes.getRequest();
+            if (request == null) {
+                log.debug("[Service] {} 无法获取HttpServletRequest", methodSignature);
+                return;
+            }
+            
+            String requestId = request.getHeader(REQUEST_ID_KEY);
+            if (requestId != null && !requestId.trim().isEmpty()) {
+                log.debug("[Service] {} 请求ID: {}", methodSignature, requestId);
             }
         } catch (Exception e) {
-            // 非Web环境调用，静默处理
-            log.debug("[Service] {} 非Web环境调用", methodSignature);
+            // 非Web环境调用或其他异常，静默处理
+            log.debug("[Service] {} 获取请求信息失败: {}", methodSignature, e.getMessage());
         }
     }
 }
