@@ -161,11 +161,11 @@
     </logger>
 
     <!-- 切面日志 -->
-    <logger name="com.wenx.v3core.aspect.ControllerAspect" level="INFO" additivity="false">
+    <logger name="com.wenx.v3log.aspect.ControllerAspect" level="INFO" additivity="false">
         <appender-ref ref="HTTP_LOG"/>
     </logger>
     
-    <logger name="com.wenx.v3core.aspect.ServiceAspect" level="INFO" additivity="false">
+    <logger name="com.wenx.v3log.aspect.ServiceAspect" level="INFO" additivity="false">
         <appender-ref ref="SERVICE_LOG"/>
     </logger>
 

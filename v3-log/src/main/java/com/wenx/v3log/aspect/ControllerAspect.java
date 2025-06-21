@@ -1,7 +1,7 @@
-package com.wenx.v3core.aspect;
+package com.wenx.v3log.aspect;
 
 import com.alibaba.fastjson2.JSON;
-import com.wenx.v3core.intercepter.RequestInterceptor;
+import com.wenx.v3log.RequestInterceptor;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;

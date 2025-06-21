@@ -1,4 +1,4 @@
-package com.wenx.v3core.aspect;
+package com.wenx.v3log.aspect;
 
 import com.wenx.v3core.util.HttpServletUtil;
 import jakarta.servlet.http.HttpServletRequest;

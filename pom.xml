@@ -18,6 +18,7 @@
     <modules>
         <module>v3-core</module>
         <module>v3-data</module>
+        <module>v3-log</module>
         <module>v3-redis</module>
         <module>v3-secure</module>
         <module>v3-seata</module>

@@ -1,4 +1,4 @@
-package com.wenx.v3core.config;
+package com.wenx.v3log.config;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;

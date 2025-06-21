@@ -1,4 +1,4 @@
-package com.wenx.v3core.intercepter;
+package com.wenx.v3log;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
