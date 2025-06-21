@@ -183,25 +183,47 @@ public class GlobalExceptionHandler {
         return R.failed("参数约束验证失败: " + message);
     }
 
+    /**
+     * 空指针异常处理
+     */
     @ResponseBody
-    @ExceptionHandler(NoResourceFoundException.class)
-    public R exceptionHandler(NoResourceFoundException e, HttpServletResponse response) {
-        response.setStatus(HttpStatus.NOT_FOUND.value());
-        // 添加详细错误信息用于调试
-        String detailedMessage = String.format("请求的资源不存在 - URI: %s, Method: %s", 
-            e.getResourcePath(), e.getHttpMethod());
-        log.warn("NoResourceFoundException: {}", detailedMessage);
-        return R.failed(detailedMessage);
+    @ExceptionHandler(NullPointerException.class)
+    public R exceptionHandler(NullPointerException e, HttpServletResponse response) {
+        log.error("空指针异常:", e);
+        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return R.failed("系统内部错误，请稍后再试");
     }
+
+    /**
+     * 栈溢出异常处理
+     */
+    @ResponseBody
+    @ExceptionHandler(StackOverflowError.class)
+    public R exceptionHandler(StackOverflowError e, HttpServletResponse response) {
+        log.error("栈溢出错误:", e);
+        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return R.failed("系统处理异常，请联系管理员");
+    }
+
+//    @ResponseBody
+//    @ExceptionHandler(NoResourceFoundException.class)
+//    public R exceptionHandler(NoResourceFoundException e, HttpServletResponse response) {
+//        response.setStatus(HttpStatus.NOT_FOUND.value());
+//        // 添加详细错误信息用于调试
+//        String detailedMessage = String.format("请求的资源不存在 - URI: %s, Method: %s",
+//            e.getResourcePath(), e.getHttpMethod());
+//        log.warn("NoResourceFoundException: {}", detailedMessage);
+//        return R.failed(detailedMessage);
+//    }
 
     /**
      * 兜底异常处理 - 必须放在最后
      */
-    @ResponseBody
-    @ExceptionHandler(Exception.class)
-    public R exceptionHandler(Exception e, HttpServletResponse response) {
-        log.error("系统异常:", e);
-        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        return R.failed(OperationConst.SYSTEM_ERROR);
-    }
+//    @ResponseBody
+//    @ExceptionHandler(Exception.class)
+//    public R exceptionHandler(Exception e, HttpServletResponse response) {
+//        log.error("系统异常:", e);
+//        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+//        return R.failed(OperationConst.SYSTEM_ERROR);
+//    }
 }
