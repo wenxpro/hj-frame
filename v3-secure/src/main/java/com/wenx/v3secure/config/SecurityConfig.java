@@ -13,9 +13,10 @@ public class SecurityConfig {
 
     /**
      * 密码编码器
+     * 使用强度10，与数据库中存储的密钥格式匹配
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(10);
     }
 } 

@@ -187,7 +187,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     public R exceptionHandler(NoResourceFoundException e, HttpServletResponse response) {
         response.setStatus(HttpStatus.NOT_FOUND.value());
-        return R.failed("请求的资源不存在");
+        // 添加详细错误信息用于调试
+        String detailedMessage = String.format("请求的资源不存在 - URI: %s, Method: %s", 
+            e.getResourcePath(), e.getHttpMethod());
+        log.warn("NoResourceFoundException: {}", detailedMessage);
+        return R.failed(detailedMessage);
     }
 
     /**
