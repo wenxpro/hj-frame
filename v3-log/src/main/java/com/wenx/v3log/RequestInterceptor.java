@@ -86,8 +86,8 @@ public class RequestInterceptor implements HandlerInterceptor {
     }
 
     @Override
-    public void afterCompletion(@NotNull HttpServletRequest request, HttpServletResponse response, 
-                               Object handler, Exception ex) throws Exception {
+    public void afterCompletion(@NotNull HttpServletRequest request, HttpServletResponse response,
+                                Object handler, Exception ex) throws Exception {
         try {
             String requestId = MDC.get(REQUEST_ID_KEY);
             

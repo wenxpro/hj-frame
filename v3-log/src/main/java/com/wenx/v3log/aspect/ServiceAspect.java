@@ -1,6 +1,6 @@
 package com.wenx.v3log.aspect;
 
-import com.wenx.v3core.util.HttpServletUtil;
+import com.wenx.v3log.utl.HttpServletUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -9,7 +9,8 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
 
-import static com.wenx.v3core.intercepter.RequestInterceptor.REQUEST_ID_KEY;
+import static com.wenx.v3log.RequestInterceptor.REQUEST_ID_KEY;
+
 
 /**
  * Service层方法执行监控切面
