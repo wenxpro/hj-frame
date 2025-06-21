@@ -5,8 +5,8 @@
     
     <!-- 环境配置 -->
     <springProfile name="dev,test">
-        <property name="log.level.root" value="INFO"/>
-        <property name="log.level.console" value="INFO"/>
+        <property name="log.level.root" value="DEBUG"/>
+        <property name="log.level.console" value="DEBUG"/>
     </springProfile>
     <springProfile name="prod">
         <property name="log.level.root" value="INFO"/>
@@ -106,6 +106,36 @@
         <appender-ref ref="FILE_ERROR"/>
     </logger>
 
+    <!-- OAuth2 授权服务日志 - 开发和测试环境启用DEBUG -->
+    <springProfile name="dev,test">
+        <logger name="com.wenx.v3authserverstarter.service.RedisOAuth2AuthorizationService" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="FILE_ERROR"/>
+        </logger>
+        
+        <logger name="com.wenx.v3auth.service" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="FILE_ERROR"/>
+        </logger>
+    </springProfile>
+    
+    <!-- 生产环境 OAuth2 服务保持 INFO 级别 -->
+    <springProfile name="prod">
+        <logger name="com.wenx.v3authserverstarter.service.RedisOAuth2AuthorizationService" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="FILE_ERROR"/>
+        </logger>
+        
+        <logger name="com.wenx.v3auth.service" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="FILE_ERROR"/>
+        </logger>
+    </springProfile>
+
     <!-- 切面日志 -->
     <logger name="com.wenx.v3log.aspect.ControllerAspect" level="INFO" additivity="false">
         <appender-ref ref="HTTP_LOG"/>
@@ -125,6 +155,14 @@
     <logger name="com.alibaba" level="ERROR"/>
     <logger name="io.netty" level="ERROR"/>
     <logger name="ch.qos.logback" level="ERROR"/>
+
+    <!-- Spring Security OAuth2 调试日志 - 仅在开发和测试环境启用 -->
+    <springProfile name="dev,test">
+        <logger name="org.springframework.security.oauth2" level="DEBUG"/>
+        <logger name="org.springframework.security.oauth2.server.authorization" level="DEBUG"/>
+        <logger name="org.springframework.security.oauth2.server.authorization.JdbcOAuth2AuthorizationService" level="DEBUG"/>
+        <logger name="org.springframework.security.web" level="DEBUG"/>
+    </springProfile>
 
     <root level="${log.level.root}">
         <appender-ref ref="CONSOLE"/>
