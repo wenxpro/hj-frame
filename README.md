@@ -120,3 +120,74 @@ public class UserController extends BaseRestController<UserDto, UserQuery, UserS
 }
 ```
 
+### 支持CQRS（命令查询职责分离）模式，统一的MessageBus（消息总线）处理
+
+#### Message（消息基类）
+
+**示例：**
+```java
+public class CreateUserCommand extends Message implements Message.Command {
+    private final String username;
+    private final String email;
+    
+    public CreateUserCommand(String username, String email) {
+        super("CREATE_USER_COMMAND");
+        this.username = username;
+        this.email = email;
+    }
+    
+    // getters...
+}
+```
+
+#### MessageHandler（消息处理器）
+
+**示例：**
+```java
+@Component
+public class CreateUserCommandHandler implements MessageHandler<CreateUserCommand, UserDto> {
+    
+    @Override
+    public UserDto handle(CreateUserCommand command) {
+        // 业务逻辑处理
+        return userService.createUser(command.getUsername(), command.getEmail());
+    }
+    
+    @Override
+    public Class<CreateUserCommand> getMessageType() {
+        return CreateUserCommand.class;
+    }
+}
+```
+
+#### 在控制器中使用
+
+```java
+@RestController
+@RequestMapping("/api/users")
+@RequiredArgsConstructor
+public class UserController {
+    
+    private final MessageBus messageBus;
+    
+    @PostMapping
+    public R<UserDto> createUser(@RequestBody CreateUserRequest request) {
+        CreateUserCommand command = new CreateUserCommand(
+            request.getUsername(),
+            request.getEmail(),
+            request.getPassword()
+        );
+        
+        UserDto user = messageBus.send(command);
+        return R.success(user);
+    }
+    
+    @GetMapping("/{id}")
+    public R<UserDto> getUserById(@PathVariable Long id) {
+        GetUserByIdQuery query = new GetUserByIdQuery(id);
+        UserDto user = messageBus.send(query);
+        return R.success(user);
+    }
+}
+```
+
