@@ -19,5 +19,5 @@ public interface GlobalConfigConsts {
     /**
      * openfeign scan
      */
-    String FEIGN_SCAN = "com.wenx.v3openfeign.api";
+    String FEIGN_SCAN = "com.wenx.v3openfeign";
 }

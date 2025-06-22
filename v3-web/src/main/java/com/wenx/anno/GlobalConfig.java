@@ -31,7 +31,7 @@ public @interface GlobalConfig {
     String[] mapperScan() default {MAPPER_PACKAGES};
 
     @AliasFor(annotation = EnableFeignClients.class, attribute = "basePackages")
-    String[] feignPackages() default {SCAN_PACKAGES};
+    String[] feignPackages() default {FEIGN_SCAN};
 
     @AliasFor(annotation = ComponentScan.class, attribute = "basePackages")
     String[] componentPackages() default {SCAN_PACKAGES};
