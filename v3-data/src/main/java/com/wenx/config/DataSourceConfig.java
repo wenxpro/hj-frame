@@ -20,34 +20,34 @@ import java.sql.SQLException;
 @Slf4j
 @Configuration
 public class DataSourceConfig {
-    
+
     /**
      * 配置主数据源
      * 使用Druid连接池
      */
-    @Primary
-    @Bean
-    @ConfigurationProperties("spring.datasource.druid")
-    public DataSource dataSource() {
-        DruidDataSource dataSource = DruidDataSourceBuilder.create().build();
-        try {
-            // 配置监控统计拦截的filters
-            dataSource.setFilters("stat,wall,slf4j");
-            // 配置连接池参数
-            dataSource.setInitialSize(5);
-            dataSource.setMinIdle(5);
-            dataSource.setMaxActive(20);
-            dataSource.setMaxWait(60000);
-            dataSource.setTimeBetweenEvictionRunsMillis(60000);
-            dataSource.setMinEvictableIdleTimeMillis(300000);
-            dataSource.setValidationQuery("SELECT 1");
-            dataSource.setTestWhileIdle(true);
-            dataSource.setTestOnBorrow(false);
-            dataSource.setTestOnReturn(false);
-            log.info("Druid数据源初始化成功");
-        } catch (SQLException e) {
-            log.error("Druid数据源初始化失败", e);
-        }
-        return dataSource;
-    }
+//    @Primary
+//    @Bean
+//    @ConfigurationProperties("spring.datasource.druid")
+//    public DataSource dataSource() {
+//        DruidDataSource dataSource = DruidDataSourceBuilder.create().build();
+//        try {
+//            // 配置监控统计拦截的filters
+//            dataSource.setFilters("stat,wall,slf4j");
+//            // 配置连接池参数
+//            dataSource.setInitialSize(5);
+//            dataSource.setMinIdle(5);
+//            dataSource.setMaxActive(20);
+//            dataSource.setMaxWait(60000);
+//            dataSource.setTimeBetweenEvictionRunsMillis(60000);
+//            dataSource.setMinEvictableIdleTimeMillis(300000);
+//            dataSource.setValidationQuery("SELECT 1");
+//            dataSource.setTestWhileIdle(true);
+//            dataSource.setTestOnBorrow(false);
+//            dataSource.setTestOnReturn(false);
+//            log.info("Druid数据源初始化成功");
+//        } catch (SQLException e) {
+//            log.error("Druid数据源初始化失败", e);
+//        }
+//        return dataSource;
+//    }
 } 
