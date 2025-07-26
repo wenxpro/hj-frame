@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public R exceptionHandler(BusinessException e, HttpServletResponse response) {
         log.warn("业务异常: {}", e.getMessage());
-        return R.failed(e.getMessage());
+        return R.failed(null,e.getMessage());
     }
 
     /**
@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ServiceException.class)
     public R exceptionHandler(ServiceException e, HttpServletResponse response) {
         log.warn("服务异常: {}", e.getMessage());
-        return R.failed(e.getMessage());
+        return R.failed(null,e.getMessage());
     }
 
     /**
