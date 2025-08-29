@@ -4,11 +4,9 @@ import com.wenx.v3secure.user.UserDetail;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 登录用户工具类

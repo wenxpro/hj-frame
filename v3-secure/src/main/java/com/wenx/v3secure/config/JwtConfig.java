@@ -18,20 +18,20 @@ import java.util.UUID;
 
 /**
  * JWT配置类
- * 
+ *
  * @author wenx
  * @description 独立的JWT配置，避免循环依赖
  */
 @Configuration
 public class JwtConfig {
-    
+
     /**
      * JWT密钥源配置
      * 配置JWT令牌的签名和验证密钥：
      * - 使用RSA非对称加密算法
      * - 私钥用于签名JWT令牌
      * - 公钥通过JWKS端点对外提供，用于令牌验证
-     * 
+     *
      * @return JWKSource JWT密钥源
      */
     @Bean
@@ -47,10 +47,10 @@ public class JwtConfig {
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
-    
+
     /**
      * 生成RSA密钥对
-     * 
+     *
      * @return KeyPair RSA密钥对
      */
     private static KeyPair generateRsaKey() {
@@ -64,10 +64,10 @@ public class JwtConfig {
         }
         return keyPair;
     }
-    
+
     /**
      * JWT编码器
-     * 
+     *
      * @param jwkSource JWT密钥源
      * @return JwtEncoder JWT编码器
      */
@@ -75,4 +75,4 @@ public class JwtConfig {
     public JwtEncoder jwtEncoder(JWKSource<SecurityContext> jwkSource) {
         return new NimbusJwtEncoder(jwkSource);
     }
-} 
+}

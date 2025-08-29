@@ -13,6 +13,8 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Field;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 数据脱敏切面
@@ -31,6 +33,10 @@ import java.util.Map;
 @Slf4j
 @Order(100)
 public class DataMaskAspect {
+    
+    // 用于防止循环引用的ThreadLocal集合
+    private static final ThreadLocal<Set<Object>> PROCESSING_OBJECTS = 
+        ThreadLocal.withInitial(() -> ConcurrentHashMap.newKeySet());
 
     /**
      * 定义Controller层方法切点
@@ -45,19 +51,22 @@ public class DataMaskAspect {
      */
     @Around("controllerPublicMethod()")
     public Object maskSensitiveData(ProceedingJoinPoint joinPoint) throws Throwable {
-        // 执行原方法
-        Object result = joinPoint.proceed();
-        
-        if (result == null) {
-            return null;
-        }
-        
         try {
+            // 执行原方法
+            Object result = joinPoint.proceed();
+            
+            if (result == null) {
+                return null;
+            }
+            
             // 记录脱敏开始（仅在debug级别）
             if (log.isDebugEnabled()) {
                 String methodSignature = buildMethodSignature(joinPoint);
                 log.debug("[MASK] 开始数据脱敏: {}", methodSignature);
             }
+            
+            // 清理ThreadLocal，确保每次请求都是干净的状态
+            PROCESSING_OBJECTS.get().clear();
             
             // 执行数据脱敏
             Object maskedResult = processMaskData(result);
@@ -70,7 +79,10 @@ public class DataMaskAspect {
             
         } catch (Exception e) {
             log.warn("[MASK] 数据脱敏处理失败: {}, 返回原始数据", e.getMessage());
-            return result;
+            throw e;
+        } finally {
+            // 清理ThreadLocal，防止内存泄漏
+            PROCESSING_OBJECTS.remove();
         }
     }
 
@@ -89,30 +101,42 @@ public class DataMaskAspect {
         if (isBasicType(obj.getClass())) {
             return obj;
         }
-
-        // 处理集合类型
-        if (obj instanceof Collection<?> collection) {
-            collection.forEach(this::processMaskData);
-            return obj;
+        
+        // 防止循环引用导致栈溢出
+        Set<Object> processingObjects = PROCESSING_OBJECTS.get();
+        if (processingObjects.contains(obj)) {
+            return obj; // 已经处理过的对象，直接返回
         }
-
-        // 处理Map类型
-        if (obj instanceof Map<?, ?> map) {
-            map.values().forEach(this::processMaskData);
-            return obj;
-        }
-
-        // 处理数组类型
-        if (obj.getClass().isArray()) {
-            Object[] array = (Object[]) obj;
-            for (Object item : array) {
-                processMaskData(item);
+        
+        try {
+            processingObjects.add(obj);
+            
+            // 处理集合类型
+            if (obj instanceof Collection<?> collection) {
+                collection.forEach(this::processMaskData);
+                return obj;
             }
-            return obj;
-        }
 
-        // 处理普通对象
-        return maskObjectFields(obj);
+            // 处理Map类型
+            if (obj instanceof Map<?, ?> map) {
+                map.values().forEach(this::processMaskData);
+                return obj;
+            }
+
+            // 处理数组类型
+            if (obj.getClass().isArray()) {
+                Object[] array = (Object[]) obj;
+                for (Object item : array) {
+                    processMaskData(item);
+                }
+                return obj;
+            }
+
+            // 处理普通对象
+            return maskObjectFields(obj);
+        } finally {
+            processingObjects.remove(obj);
+        }
     }
 
     /**
@@ -191,22 +215,43 @@ public class DataMaskAspect {
      * @return 是否为基本类型
      */
     private boolean isBasicType(Class<?> clazz) {
-        return clazz.isPrimitive() || 
-               clazz == String.class ||
-               clazz == Integer.class ||
-               clazz == Long.class ||
-               clazz == Double.class ||
-               clazz == Float.class ||
-               clazz == Boolean.class ||
-               clazz == Character.class ||
-               clazz == Byte.class ||
-               clazz == Short.class ||
-               Number.class.isAssignableFrom(clazz) ||
-               clazz.isEnum() ||
-               (clazz.getPackage() != null && 
-                (clazz.getPackage().getName().startsWith("java.lang") ||
-                 clazz.getPackage().getName().startsWith("java.time") ||
-                 clazz.getPackage().getName().startsWith("java.math")));
+        if (clazz == null) {
+            return true;
+        }
+        
+        // 基本类型和包装类型
+        if (clazz.isPrimitive() || 
+            clazz == String.class ||
+            clazz == Integer.class ||
+            clazz == Long.class ||
+            clazz == Double.class ||
+            clazz == Float.class ||
+            clazz == Boolean.class ||
+            clazz == Character.class ||
+            clazz == Byte.class ||
+            clazz == Short.class ||
+            clazz.isEnum()) {
+            return true;
+        }
+        
+        // Number类型检查
+        if (Number.class.isAssignableFrom(clazz)) {
+            return true;
+        }
+        
+        // 安全的包名检查
+        Package pkg = clazz.getPackage();
+        if (pkg != null) {
+            String packageName = pkg.getName();
+            if (packageName != null && 
+                (packageName.startsWith("java.lang") ||
+                 packageName.startsWith("java.time") ||
+                 packageName.startsWith("java.math"))) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -223,4 +268,4 @@ public class DataMaskAspect {
         String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
         return simpleClassName + "." + methodName;
     }
-} 
+}
