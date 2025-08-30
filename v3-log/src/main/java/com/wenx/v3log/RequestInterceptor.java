@@ -3,6 +3,9 @@ package com.wenx.v3log;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
@@ -76,6 +81,9 @@ public class RequestInterceptor implements HandlerInterceptor {
         if (StrUtil.isNotBlank(userId)) {
             MDC.put(USER_ID_KEY, userId);
         }
+        
+        // 设置Jaeger trace信息到MDC（如果可用）
+        JaegerTraceUtil.setMDCTraceInfo();
         
         // 简单的追踪日志（仅DEBUG级别）
         if (log.isDebugEnabled()) {
@@ -171,11 +179,14 @@ public class RequestInterceptor implements HandlerInterceptor {
             }
         }
         
-        // 可以在这里添加JWT解析逻辑
+        // JWT解析逻辑
         String authorization = request.getHeader("Authorization");
         if (StrUtil.isNotBlank(authorization) && authorization.startsWith("Bearer ")) {
-            // TODO: 添加JWT解析逻辑提取用户ID
-            // return parseUserIdFromJWT(authorization.substring(7));
+            try {
+                return parseUserIdFromJWT(authorization.substring(7));
+            } catch (Exception e) {
+                log.warn("JWT解析失败: {}", e.getMessage());
+            }
         }
         
         return null;
@@ -292,5 +303,54 @@ public class RequestInterceptor implements HandlerInterceptor {
             }
         }
         return 0L;
+    }
+    
+    /**
+     * 从JWT token中解析用户ID
+     * 
+     * @param token JWT token字符串
+     * @return 用户ID，解析失败返回null
+     */
+    private String parseUserIdFromJWT(String token) {
+        try {
+            // 注意：这里使用了一个默认的密钥，实际项目中应该从配置中获取
+            // 或者使用公钥验证（如果使用RSA算法）
+            String secretKey = "v3-cloud-jwt-secret-key-for-user-authentication-2024";
+            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+            
+            Claims claims = Jwts.parser()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            
+            // 尝试从多个可能的字段中获取用户ID
+            Object userId = claims.get("userId");
+            if (userId != null) {
+                return userId.toString();
+            }
+            
+            userId = claims.get("user_id");
+            if (userId != null) {
+                return userId.toString();
+            }
+            
+            userId = claims.get("sub"); // JWT标准的subject字段
+            if (userId != null) {
+                return userId.toString();
+            }
+            
+            userId = claims.get("id");
+            if (userId != null) {
+                return userId.toString();
+            }
+            
+            log.debug("JWT中未找到用户ID字段，可用字段: {}", claims.keySet());
+            return null;
+            
+        } catch (Exception e) {
+            log.debug("JWT解析异常: {}", e.getMessage());
+            return null;
+        }
     }
 }
