@@ -62,7 +62,7 @@ public class DataMaskProcessor {
                 case NONE -> data;
             };
         } catch (Exception e) {
-            System.err.println("数据脱敏处理失败: " + e.getMessage());
+            // 忽略脱敏处理异常，返回原始数据
             return data;
         }
     }
@@ -209,21 +209,16 @@ public class DataMaskProcessor {
             return maskMiddle(data, annotation.prefixKeep(), annotation.suffixKeep(), annotation.maskChar());
         }
         
-        try {
-            // 支持正则表达式替换
-            if (customRule.contains("->")) {
-                String[] parts = customRule.split("->");
-                if (parts.length == 2) {
-                    return data.replaceAll(parts[0].trim(), parts[1].trim());
-                }
+        // 支持正则表达式替换
+        if (customRule.contains("->")) {
+            String[] parts = customRule.split("->");
+            if (parts.length == 2) {
+                return data.replaceAll(parts[0].trim(), parts[1].trim());
             }
-            
-            // 默认处理
-            return maskMiddle(data, annotation.prefixKeep(), annotation.suffixKeep(), annotation.maskChar());
-        } catch (Exception e) {
-            System.err.println("自定义脱敏规则执行失败: " + e.getMessage());
-            return data;
         }
+        
+        // 默认处理
+        return maskMiddle(data, annotation.prefixKeep(), annotation.suffixKeep(), annotation.maskChar());
     }
 
     /**
@@ -289,4 +284,4 @@ public class DataMaskProcessor {
         }
         return sb.toString();
     }
-} 
+}

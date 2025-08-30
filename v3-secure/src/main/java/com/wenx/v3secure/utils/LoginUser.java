@@ -1,7 +1,10 @@
 package com.wenx.v3secure.utils;
 
 import com.wenx.v3secure.user.UserDetail;
-import lombok.extern.slf4j.Slf4j;
+import com.wenx.v3secure.enums.PlatformPermission;
+import com.wenx.v3secure.enums.PlatformRoleType;
+import com.wenx.v3secure.enums.SystemPermission;
+import com.wenx.v3secure.enums.SystemRoleType;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,24 +17,20 @@ import java.util.*;
  * @author wenx
  * @description 提供获取当前登录用户信息的静态方法
  */
-@Slf4j
 public class LoginUser {
 
     /**
      * 获取当前登录用户
+     * 返回SecurityContext中的UserDetail对象
      */
     public static UserDetail getUser() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication != null && authentication.isAuthenticated() 
-                && !(authentication instanceof AnonymousAuthenticationToken)) {
-                Object principal = authentication.getPrincipal();
-                if (principal instanceof UserDetail) {
-                    return (UserDetail) principal;
-                }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() 
+            && !(authentication instanceof AnonymousAuthenticationToken)) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof UserDetail userDetail) {
+                return userDetail;
             }
-        } catch (Exception e) {
-            log.error("获取当前用户信息失败", e);
         }
         return new UserDetail();
     }
@@ -74,6 +73,160 @@ public class LoginUser {
     public static boolean isSuperAdmin() {
         UserDetail user = getUser();
         return user != null && user.getSuperAdmin() != null && user.getSuperAdmin() == 1;
+    }
+    
+    /**
+     * 判断当前用户是否为平台管理员
+     * 支持通配符权限检查，如platform:*、platform:tenant:*等
+     */
+    public static boolean isPlatformAdmin() {
+        Set<String> authorities = getAuthorities();
+        
+        // 检查角色权限
+        if (authorities.contains("ROLE_PLATFORM_ADMIN")) {
+            return true;
+        }
+        
+        // 检查平台通配符权限
+        if (authorities.contains(PlatformPermission.PLATFORM_ALL_CODE)) {
+            return true;
+        }
+        
+        // 检查具体的平台管理权限
+        String[] platformPermissions = {
+            PlatformPermission.TENANT_ALL_CODE,
+            PlatformPermission.PLATFORM_USER_ALL_CODE,
+            PlatformPermission.SYSTEM_ALL_CODE,
+            PlatformPermission.PLATFORM_ROLE_ALL_CODE
+        };
+        
+        for (String permission : platformPermissions) {
+            if (authorities.contains(permission)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 检查权限是否匹配（支持通配符）
+     */
+    public static boolean hasPermission(String requiredPermission) {
+        if (requiredPermission == null || requiredPermission.isEmpty()) {
+            return false;
+        }
+        
+        Set<String> authorities = getAuthorities();
+        
+        // 使用PlatformPermission中的权限匹配逻辑
+        for (String authority : authorities) {
+            if (PlatformPermission.hasPermission(authority, requiredPermission)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * 检查权限是否匹配
+     * 支持通配符权限检查
+     */
+    public static boolean hasPermission(String userPermission, String requiredPermission) {
+        return PlatformPermission.hasPermission(userPermission, requiredPermission);
+    }
+    
+    /**
+     * 检查当前用户是否拥有指定的平台角色
+     */
+    public static boolean hasPlatformRole(PlatformRoleType roleType) {
+        UserDetail userDetail = getUser();
+        return userDetail != null && userDetail.hasPlatformRole(roleType);
+    }
+    
+    /**
+     * 检查当前用户是否拥有指定角色代码的平台角色
+     */
+    public static boolean hasPlatformRole(String roleCode) {
+        UserDetail userDetail = getUser();
+        return userDetail != null && userDetail.hasPlatformRole(roleCode);
+    }
+    
+    /**
+     * 获取当前用户的平台角色类型
+     */
+    public static PlatformRoleType getPlatformRoleType() {
+        UserDetail userDetail = getUser();
+        return userDetail != null ? userDetail.getPlatformRoleType() : null;
+    }
+    
+    /**
+     * 检查当前用户是否拥有指定的系统角色
+     */
+    public static boolean hasSystemRole(SystemRoleType roleType) {
+        UserDetail userDetail = getUser();
+        return userDetail != null && userDetail.hasSystemRole(roleType);
+    }
+    
+    /**
+     * 检查当前用户是否拥有指定角色代码的系统角色
+     */
+    public static boolean hasSystemRole(String roleCode) {
+        UserDetail userDetail = getUser();
+        return userDetail != null && userDetail.hasSystemRole(roleCode);
+    }
+    
+    /**
+     * 获取当前用户的系统角色类型
+     */
+    public static SystemRoleType getSystemRoleType() {
+        UserDetail userDetail = getUser();
+        return userDetail != null ? userDetail.getSystemRoleType() : null;
+    }
+    
+    /**
+     * 获取当前用户的最高角色层级（数字越小权限越高）
+     */
+    public static Integer getHighestRoleLevel() {
+        UserDetail userDetail = getUser();
+        return userDetail != null ? userDetail.getHighestRoleLevel() : Integer.MAX_VALUE;
+    }
+    
+    /**
+     * 检查当前用户角色层级是否满足要求
+     * @param requiredLevel 要求的最低权限层级
+     * @return 是否满足权限层级要求
+     */
+    public static boolean hasRequiredRoleLevel(int requiredLevel) {
+        // 超级管理员拥有所有权限
+        if (isSuperAdmin()) {
+            return true;
+        }
+        
+        Integer userLevel = getHighestRoleLevel();
+        // 用户角色层级小于等于要求层级才能通过（数字越小权限越高）
+        return userLevel <= requiredLevel;
+    }
+    
+    /**
+     * 检查系统权限是否匹配（支持通配符）
+     */
+    public static boolean hasSystemPermission(String requiredPermission) {
+        if (requiredPermission == null || requiredPermission.isEmpty()) {
+            return false;
+        }
+        
+        Set<String> authorities = getAuthorities();
+        
+        // 使用SystemPermission中的权限匹配逻辑
+        for (String authority : authorities) {
+            if (SystemPermission.hasPermission(authority, requiredPermission)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -137,4 +290,4 @@ public class LoginUser {
         UserDetail user = getUser();
         return user != null && user.getDataScopeList() == null;
     }
-} 
+}

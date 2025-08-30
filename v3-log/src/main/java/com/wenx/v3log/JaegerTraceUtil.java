@@ -261,13 +261,13 @@ public class JaegerTraceUtil {
     public static String getCurrentSpanContext() {
         String traceId = getUnifiedTraceId();
         String spanId = getUnifiedSpanId();
-        String userId = RequestInterceptor.getCurrentUserId();
+        // 用户ID已从日志中移除
+        // String userId = RequestInterceptor.getCurrentUserId();
         String clientIp = RequestInterceptor.getCurrentClientIp();
         
-        return String.format("[%s|%s|%s|%s]",
+        return String.format("[%s|%s|%s]",
             traceId,
             spanId,
-            StrUtil.isNotBlank(userId) ? userId : "anonymous",
             StrUtil.isNotBlank(clientIp) ? clientIp : "unknown"
         );
     }

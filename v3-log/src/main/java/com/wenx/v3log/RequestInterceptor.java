@@ -41,10 +41,7 @@ public class RequestInterceptor implements HandlerInterceptor {
      */
     public static final String REQUEST_START_TIME_KEY = "request-start-time";
     
-    /**
-     * 用户ID的MDC键名
-     */
-    public static final String USER_ID_KEY = "user-id";
+
     
     /**
      * 客户端IP的MDC键名
@@ -67,8 +64,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         // 生成或获取请求追踪ID
         String requestId = generateRequestId(request);
         
-        // 获取用户信息（如果存在）
-        String userId = extractUserId(request);
+
         
         // 获取客户端IP
         String clientIp = extractClientIp(request);
@@ -78,9 +74,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         MDC.put(REQUEST_START_TIME_KEY, String.valueOf(System.currentTimeMillis()));
         MDC.put(CLIENT_IP_KEY, clientIp);
         
-        if (StrUtil.isNotBlank(userId)) {
-            MDC.put(USER_ID_KEY, userId);
-        }
+
         
         // 设置Jaeger trace信息到MDC（如果可用）
         JaegerTraceUtil.setMDCTraceInfo();
@@ -159,38 +153,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         return timestamp + randomSuffix;
     }
     
-    /**
-     * 提取用户ID（从请求头或参数中）
-     * 
-     * @param request HTTP请求对象
-     * @return 用户ID，可能为null
-     */
-    private String extractUserId(HttpServletRequest request) {
-        // 尝试从多个可能的位置获取用户ID
-        String[] userIdSources = {
-            request.getHeader("X-User-Id"),
-            request.getHeader("userId"),
-            request.getParameter("userId")
-        };
-        
-        for (String source : userIdSources) {
-            if (StrUtil.isNotBlank(source)) {
-                return source;
-            }
-        }
-        
-        // JWT解析逻辑
-        String authorization = request.getHeader("Authorization");
-        if (StrUtil.isNotBlank(authorization) && authorization.startsWith("Bearer ")) {
-            try {
-                return parseUserIdFromJWT(authorization.substring(7));
-            } catch (Exception e) {
-                log.warn("JWT解析失败: {}", e.getMessage());
-            }
-        }
-        
-        return null;
-    }
+
     
     /**
      * 提取客户端真实IP地址
@@ -270,14 +233,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         return MDC.get(REQUEST_ID_KEY);
     }
     
-    /**
-     * 静态方法：获取当前请求的用户ID
-     * 
-     * @return 当前请求的用户ID，如果不存在则返回null
-     */
-    public static String getCurrentUserId() {
-        return MDC.get(USER_ID_KEY);
-    }
+
     
     /**
      * 静态方法：获取当前请求的客户端IP
@@ -305,52 +261,7 @@ public class RequestInterceptor implements HandlerInterceptor {
         return 0L;
     }
     
-    /**
-     * 从JWT token中解析用户ID
-     * 
-     * @param token JWT token字符串
-     * @return 用户ID，解析失败返回null
-     */
-    private String parseUserIdFromJWT(String token) {
-        try {
-            // 注意：这里使用了一个默认的密钥，实际项目中应该从配置中获取
-            // 或者使用公钥验证（如果使用RSA算法）
-            String secretKey = "v3-cloud-jwt-secret-key-for-user-authentication-2024";
-            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-            
-            Claims claims = Jwts.parser()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-            
-            // 尝试从多个可能的字段中获取用户ID
-            Object userId = claims.get("userId");
-            if (userId != null) {
-                return userId.toString();
-            }
-            
-            userId = claims.get("user_id");
-            if (userId != null) {
-                return userId.toString();
-            }
-            
-            userId = claims.get("sub"); // JWT标准的subject字段
-            if (userId != null) {
-                return userId.toString();
-            }
-            
-            userId = claims.get("id");
-            if (userId != null) {
-                return userId.toString();
-            }
-            
-            log.debug("JWT中未找到用户ID字段，可用字段: {}", claims.keySet());
-            return null;
-            
-        } catch (Exception e) {
-            log.debug("JWT解析异常: {}", e.getMessage());
-            return null;
-        }
-    }
+
+    
+
 }

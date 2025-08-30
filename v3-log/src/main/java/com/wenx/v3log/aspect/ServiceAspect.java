@@ -1,7 +1,8 @@
 package com.wenx.v3log.aspect;
 
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -21,8 +22,9 @@ import static com.wenx.v3log.RequestInterceptor.REQUEST_ID_KEY;
  */
 @Aspect
 @Component
-@Slf4j
 public class ServiceAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(ServiceAspect.class);
 
     /**
      * 定义Service层方法切点
@@ -49,22 +51,16 @@ public class ServiceAspect {
         
         // 执行方法并计时
         long startTime = System.currentTimeMillis();
-        try {
-            Object result = joinPoint.proceed();
-            long executionTime = System.currentTimeMillis() - startTime;
-            
-            // 记录执行时间
-            logExecutionTime(methodSignature, executionTime);
-            
-            // 记录请求信息（如果在Web环境中）
-            logRequestInfo(methodSignature);
-            
-            return result;
-        } catch (Exception e) {
-            long executionTime = System.currentTimeMillis() - startTime;
-            log.error("[Service] {} 执行失败，耗时: {}ms", methodSignature, executionTime, e);
-            throw e;
-        }
+        Object result = joinPoint.proceed();
+        long executionTime = System.currentTimeMillis() - startTime;
+        
+        // 记录执行时间
+        logExecutionTime(methodSignature, executionTime);
+        
+        // 记录请求信息（如果在Web环境中）
+        logRequestInfo(methodSignature);
+        
+        return result;
     }
 
     /**

@@ -5,8 +5,8 @@ import com.wenx.v3log.RequestInterceptor;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -34,8 +34,9 @@ import java.util.Objects;
  */
 @Aspect
 @Component
-@Slf4j
 public class ControllerAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(ControllerAspect.class);
 
     /**
      * 定义Controller层方法切点
@@ -100,7 +101,8 @@ public class ControllerAspect {
         
         // 从MDC获取追踪信息（由RequestInterceptor设置）
         requestLog.setRequestId(RequestInterceptor.getCurrentRequestId());
-        requestLog.setUserId(RequestInterceptor.getCurrentUserId());
+        // 用户ID已从日志中移除
+        // requestLog.setUserId(RequestInterceptor.getCurrentUserId());
         requestLog.setClientIp(RequestInterceptor.getCurrentClientIp());
         
         // 请求参数序列化
@@ -198,11 +200,7 @@ public class ControllerAspect {
      * 获取请求属性
      */
     private ServletRequestAttributes getRequestAttributes() {
-        try {
-            return (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        } catch (Exception e) {
-            return null;
-        }
+        return (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
     }
 
     /**
@@ -261,7 +259,6 @@ public class ControllerAspect {
     /**
      * HTTP请求日志数据对象
      */
-    @Data
     public static class HttpRequestLog {
         /** 请求URL */
         private String url;
@@ -285,6 +282,30 @@ public class ControllerAspect {
         private String userAgent;
         /** 性能级别 */
         private PerformanceLevel performanceLevel;
+
+        // Getter and Setter methods
+        public String getUrl() { return url; }
+        public void setUrl(String url) { this.url = url; }
+        public String getMethod() { return method; }
+        public void setMethod(String method) { this.method = method; }
+        public String getAction() { return action; }
+        public void setAction(String action) { this.action = action; }
+        public String getParams() { return params; }
+        public void setParams(String params) { this.params = params; }
+        public String getRequestId() { return requestId; }
+        public void setRequestId(String requestId) { this.requestId = requestId; }
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        public String getClientIp() { return clientIp; }
+        public void setClientIp(String clientIp) { this.clientIp = clientIp; }
+        public long getExecutionTime() { return executionTime; }
+        public void setExecutionTime(long executionTime) { this.executionTime = executionTime; }
+        public long getTotalTime() { return totalTime; }
+        public void setTotalTime(long totalTime) { this.totalTime = totalTime; }
+        public String getUserAgent() { return userAgent; }
+        public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
+        public PerformanceLevel getPerformanceLevel() { return performanceLevel; }
+        public void setPerformanceLevel(PerformanceLevel performanceLevel) { this.performanceLevel = performanceLevel; }
 
         @Override
         public String toString() {

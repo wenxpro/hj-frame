@@ -4,7 +4,6 @@ import com.wenx.v3secure.annotation.RequiresPermissions;
 import com.wenx.v3secure.annotation.RequiresRoles;
 import com.wenx.v3secure.exception.UnauthorizedException;
 import com.wenx.v3secure.utils.LoginUser;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Set;
 
 /**
  * 安全注解切面
@@ -22,11 +20,10 @@ import java.util.Set;
  * @author wenx
  * @description 处理权限和角色验证注解
  */
-@Slf4j
 @Aspect
 @Component
 public class SecurityAspect {
-    
+
     /**
      * 权限注解切点
      */
@@ -44,6 +41,16 @@ public class SecurityAspect {
      */
     @Around("requiresPermissionsPointcut()")
     public Object checkPermissions(ProceedingJoinPoint joinPoint) throws Throwable {
+        // 检查用户是否登录
+        if (!LoginUser.isAuthenticated()) {
+            throw new UnauthorizedException("用户未登录");
+        }
+        
+        // 超级管理员直接放行
+        if (LoginUser.isSuperAdmin()) {
+            return joinPoint.proceed();
+        }
+        
         // 获取方法上的注解
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
@@ -53,33 +60,20 @@ public class SecurityAspect {
             String[] requiredPermissions = annotation.value();
             RequiresPermissions.Logical logical = annotation.logical();
             
-            // 检查用户是否登录
-            if (!LoginUser.isAuthenticated()) {
-                throw new UnauthorizedException("用户未登录");
-            }
-            
-            // 超级管理员跳过权限检查
-            if (LoginUser.isSuperAdmin()) {
-                return joinPoint.proceed();
-            }
-            
-            // 获取用户权限
-            Set<String> userPermissions = LoginUser.getAuthorities();
-            
             // 验证权限
             boolean hasPermission = false;
             if (logical == RequiresPermissions.Logical.AND) {
                 // 必须拥有所有权限
-                hasPermission = userPermissions.containsAll(Arrays.asList(requiredPermissions));
+                hasPermission = Arrays.stream(requiredPermissions)
+                        .allMatch(permission -> LoginUser.hasPermission(permission) || LoginUser.hasSystemPermission(permission));
             } else {
                 // 只需拥有其中一个权限
                 hasPermission = Arrays.stream(requiredPermissions)
-                        .anyMatch(userPermissions::contains);
+                        .anyMatch(permission -> LoginUser.hasPermission(permission) || LoginUser.hasSystemPermission(permission));
             }
             
             if (!hasPermission) {
-                log.warn("用户 {} 缺少权限: {}", LoginUser.getUsername(), Arrays.toString(requiredPermissions));
-                throw new UnauthorizedException("权限不足");
+                throw new UnauthorizedException("权限不足: " + Arrays.toString(requiredPermissions));
             }
         }
         
@@ -91,6 +85,16 @@ public class SecurityAspect {
      */
     @Around("requiresRolesPointcut()")
     public Object checkRoles(ProceedingJoinPoint joinPoint) throws Throwable {
+        // 检查用户是否登录
+        if (!LoginUser.isAuthenticated()) {
+            throw new UnauthorizedException("用户未登录");
+        }
+        
+        // 超级管理员直接放行
+        if (LoginUser.isSuperAdmin()) {
+            return joinPoint.proceed();
+        }
+        
         // 获取方法上的注解
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
@@ -100,39 +104,23 @@ public class SecurityAspect {
             String[] requiredRoles = annotation.value();
             RequiresRoles.Logical logical = annotation.logical();
             
-            // 检查用户是否登录
-            if (!LoginUser.isAuthenticated()) {
-                throw new UnauthorizedException("用户未登录");
-            }
-            
-            // 超级管理员跳过角色检查
-            if (LoginUser.isSuperAdmin()) {
-                return joinPoint.proceed();
-            }
-            
-            // 获取用户权限（角色以ROLE_开头）
-            Set<String> userAuthorities = LoginUser.getAuthorities();
-            
             // 验证角色
             boolean hasRole = false;
             if (logical == RequiresRoles.Logical.AND) {
                 // 必须拥有所有角色
                 hasRole = Arrays.stream(requiredRoles)
-                        .map(role -> "ROLE_" + role)
-                        .allMatch(userAuthorities::contains);
+                        .allMatch(role -> LoginUser.hasPlatformRole(role) || LoginUser.hasSystemRole(role));
             } else {
                 // 只需拥有其中一个角色
                 hasRole = Arrays.stream(requiredRoles)
-                        .map(role -> "ROLE_" + role)
-                        .anyMatch(userAuthorities::contains);
+                        .anyMatch(role -> LoginUser.hasPlatformRole(role) || LoginUser.hasSystemRole(role));
             }
             
             if (!hasRole) {
-                log.warn("用户 {} 缺少角色: {}", LoginUser.getUsername(), Arrays.toString(requiredRoles));
-                throw new UnauthorizedException("角色权限不足");
+                throw new UnauthorizedException("角色权限不足: " + Arrays.toString(requiredRoles));
             }
         }
         
         return joinPoint.proceed();
     }
-} 
+}
