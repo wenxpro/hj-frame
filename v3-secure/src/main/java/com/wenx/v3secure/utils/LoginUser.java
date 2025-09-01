@@ -185,29 +185,7 @@ public class LoginUser {
         return userDetail != null ? userDetail.getSystemRoleType() : null;
     }
     
-    /**
-     * 获取当前用户的最高角色层级（数字越小权限越高）
-     */
-    public static Integer getHighestRoleLevel() {
-        UserDetail userDetail = getUser();
-        return userDetail != null ? userDetail.getHighestRoleLevel() : Integer.MAX_VALUE;
-    }
-    
-    /**
-     * 检查当前用户角色层级是否满足要求
-     * @param requiredLevel 要求的最低权限层级
-     * @return 是否满足权限层级要求
-     */
-    public static boolean hasRequiredRoleLevel(int requiredLevel) {
-        // 超级管理员拥有所有权限
-        if (isSuperAdmin()) {
-            return true;
-        }
-        
-        Integer userLevel = getHighestRoleLevel();
-        // 用户角色层级小于等于要求层级才能通过（数字越小权限越高）
-        return userLevel <= requiredLevel;
-    }
+
     
     /**
      * 检查系统权限是否匹配（支持通配符）

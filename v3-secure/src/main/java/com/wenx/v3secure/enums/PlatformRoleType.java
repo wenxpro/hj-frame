@@ -11,30 +11,27 @@ import java.util.List;
  */
 public enum PlatformRoleType {
     
-    SUPER_ADMIN("super_admin", "超级管理员", "拥有平台所有权限", 1,
+    SUPER_ADMIN("super_admin", "超级管理员", "拥有平台所有权限",
             Arrays.asList(PlatformPermission.PLATFORM_ALL_CODE)),
     
-    PLATFORM_ADMIN("platform_admin", "平台管理员", "负责租户和用户管理", 2,
-            Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE, 
-                         PlatformPermission.MONITOR_VIEW_CODE, PlatformPermission.LOG_READ_CODE)),
+    PLATFORM_ADMIN("platform_admin", "平台管理员", "负责租户和用户管理",
+            Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE)),
     
-    PLATFORM_SUPPORT("platform_support", "平台支持", "负责租户支持和系统监控", 3,
-            Arrays.asList(PlatformPermission.TENANT_READ_CODE, PlatformPermission.MONITOR_VIEW_CODE)),
+    PLATFORM_SUPPORT("platform_support", "平台支持", "负责租户支持",
+            Arrays.asList(PlatformPermission.TENANT_READ_CODE)),
     
-    PLATFORM_AUDITOR("platform_auditor", "平台审计员", "负责日志审计和监控", 4,
-            Arrays.asList(PlatformPermission.LOG_READ_CODE, PlatformPermission.MONITOR_VIEW_CODE));
+    PLATFORM_AUDITOR("platform_auditor", "平台审计员", "负责系统审计",
+            Arrays.asList(PlatformPermission.SYSTEM_CONFIG_CODE));
     
     private final String code;
     private final String name;
     private final String description;
-    private final Integer level;
     private final List<String> permissions;
     
-    PlatformRoleType(String code, String name, String description, Integer level, List<String> permissions) {
+    PlatformRoleType(String code, String name, String description, List<String> permissions) {
         this.code = code;
         this.name = name;
         this.description = description;
-        this.level = level;
         this.permissions = permissions;
     }
     
@@ -48,10 +45,6 @@ public enum PlatformRoleType {
     
     public String getDescription() {
         return description;
-    }
-    
-    public Integer getLevel() {
-        return level;
     }
     
     public List<String> getPermissions() {

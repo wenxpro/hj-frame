@@ -169,33 +169,5 @@ public class UserDetail implements UserDetails {
         return null;
     }
     
-    /**
-     * 获取用户的最高角色层级（数字越小权限越高）
-     * 同时考虑平台角色和系统角色
-     */
-    public Integer getHighestRoleLevel() {
-        Integer platformLevel = null;
-        Integer systemLevel = null;
-        
-        PlatformRoleType platformRole = getPlatformRoleType();
-        if (platformRole != null) {
-            platformLevel = platformRole.getLevel();
-        }
-        
-        SystemRoleType systemRole = getSystemRoleType();
-        if (systemRole != null) {
-            systemLevel = systemRole.getLevel();
-        }
-        
-        // 返回最小的层级值（最高权限）
-        if (platformLevel != null && systemLevel != null) {
-            return Math.min(platformLevel, systemLevel);
-        } else if (platformLevel != null) {
-            return platformLevel;
-        } else if (systemLevel != null) {
-            return systemLevel;
-        }
-        
-        return Integer.MAX_VALUE; // 没有角色时返回最大值
-    }
+
 }

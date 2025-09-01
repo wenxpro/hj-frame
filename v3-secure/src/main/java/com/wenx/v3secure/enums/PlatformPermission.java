@@ -17,10 +17,6 @@ public class PlatformPermission {
     public static final String PLATFORM_ROLE_ALL_CODE = "platform:role:*";
     public static final String SYSTEM_CONFIG_CODE = "platform:system:config";
     public static final String SYSTEM_ALL_CODE = "platform:system:*";
-    public static final String MONITOR_VIEW_CODE = "platform:monitor:view";
-    public static final String MONITOR_ALL_CODE = "platform:monitor:*";
-    public static final String LOG_READ_CODE = "platform:log:read";
-    public static final String LOG_ALL_CODE = "platform:log:*";
     
     private final String code;
     private final String name;
