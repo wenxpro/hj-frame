@@ -15,13 +15,13 @@ public enum PlatformRoleType {
             Arrays.asList(PlatformPermission.PLATFORM_ALL_CODE)),
     
     PLATFORM_ADMIN("platform_admin", "平台管理员", "负责租户和用户管理",
-            Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE)),
+            Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),
     
     PLATFORM_SUPPORT("platform_support", "平台支持", "负责租户支持",
-            Arrays.asList(PlatformPermission.TENANT_READ_CODE)),
+            Arrays.asList(PlatformPermission.TENANT_READ_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),
     
     PLATFORM_AUDITOR("platform_auditor", "平台审计员", "负责系统审计",
-            Arrays.asList(PlatformPermission.SYSTEM_CONFIG_CODE));
+            Arrays.asList(PlatformPermission.SYSTEM_CONFIG_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE));
     
     private final String code;
     private final String name;

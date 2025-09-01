@@ -15,6 +15,7 @@ public class PlatformPermission {
     public static final String PLATFORM_USER_ALL_CODE = "platform:user:*";
     public static final String PLATFORM_ROLE_READ_CODE = "platform:role:read";
     public static final String PLATFORM_ROLE_ALL_CODE = "platform:role:*";
+    public static final String PLATFORM_MENU_READ_CODE = "platform:menu:read";
     public static final String SYSTEM_CONFIG_CODE = "platform:system:config";
     public static final String SYSTEM_ALL_CODE = "platform:system:*";
     
