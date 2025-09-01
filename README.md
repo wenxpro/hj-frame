@@ -3,15 +3,19 @@
 
 ```
 v3-frame
-├── v3-core      # 核心组件 - 基础工具类、常量、异常处理
-├── v3-data      # 数据访问 - MyBatis Plus、数据源配置
-├── v3-redis     # 缓存组件 - Redis、分布式锁
-├── v3-secure    # 安全组件 - 用户认证、权限管理
-├── v3-seata     # 分布式事务 - Seata集成
-└── v3-web       # Web组件 - 统一配置、异常处理、基础Controller
+├── v3-core      # 核心组件 - 基础工具类、常量、异常处理、统一响应格式
+├── v3-data      # 数据访问 - MyBatis Plus、数据源配置、事务管理
+├── v3-redis     # 缓存组件 - Redis操作、分布式锁实现
+├── v3-secure    # 安全组件 - 用户认证、权限管理、安全切面
+├── v3-seata     # 分布式事务 - Seata集成和自动配置
+└── v3-web       # Web组件 - 统一配置、异常处理、基础Controller、消息总线
 ```
 
-### 标准化所有API接口的返回格式，提供统一的成功和失败响应处理。
+## 核心特性
+
+### 1. 统一响应格式
+
+标准化所有API接口的返回格式，提供统一的成功和失败响应处理：
 
 ```java
 // 成功响应
@@ -34,7 +38,9 @@ R.failed(data, "错误信息") // 带数据的失败响应
 }
 ```
 
-### 一键启用微服务常用功能的复合注解：
+### 2. 复合注解配置
+
+一键启用微服务常用功能的复合注解：
 
 ```java
 @SpringBootApplication
@@ -58,8 +64,9 @@ public class Application {
 - `@ComponentScan` - 组件扫描
 - `@EnableAsync` - 启用异步处理
 
+### 3. 基础控制器
 
-### 提供标准的查询接口：
+提供标准的查询接口：
 
 ```java
 public abstract class BaseReadController<D, Q, S> {
@@ -76,7 +83,7 @@ public abstract class BaseReadController<D, Q, S> {
 }
 ```
 
-### 扩展查询控制器，提供完整的CRUD接口：
+扩展查询控制器，提供完整的CRUD接口：
 
 ```java
 public abstract class BaseRestController<D, Q, S> extends BaseReadController<D, Q, S> {
@@ -120,11 +127,12 @@ public class UserController extends BaseRestController<UserDto, UserQuery, UserS
 }
 ```
 
-### 支持CQRS（命令查询职责分离）模式，统一的MessageBus（消息总线）处理
+### 4. CQRS模式支持
+
+支持CQRS（命令查询职责分离）模式，统一的MessageBus（消息总线）处理：
 
 #### Message（消息基类）
 
-**示例：**
 ```java
 public class CreateUserCommand extends Message implements Message.Command {
     private final String username;
@@ -142,7 +150,6 @@ public class CreateUserCommand extends Message implements Message.Command {
 
 #### MessageHandler（消息处理器）
 
-**示例：**
 ```java
 @Component
 public class CreateUserCommandHandler implements MessageHandler<CreateUserCommand, UserDto> {
@@ -174,19 +181,72 @@ public class UserController {
     public R<UserDto> createUser(@RequestBody CreateUserRequest request) {
         CreateUserCommand command = new CreateUserCommand(
             request.getUsername(),
-            request.getEmail(),
-            request.getPassword()
+            request.getEmail()
         );
         
         UserDto user = messageBus.send(command);
-        return R.success(user);
+        return R.ok(user);
     }
     
     @GetMapping("/{id}")
     public R<UserDto> getUserById(@PathVariable Long id) {
         GetUserByIdQuery query = new GetUserByIdQuery(id);
         UserDto user = messageBus.send(query);
-        return R.success(user);
+        return R.ok(user);
+    }
+}
+```
+
+### 5. 全局异常处理
+
+统一的异常处理机制，支持多种异常类型：
+
+- **业务异常**：BusinessException
+- **服务异常**：ServiceException
+- **认证异常**：AuthenticationException
+- **参数验证异常**：MethodArgumentNotValidException
+- **权限异常**：AccessDeniedException
+
+### 6. 安全切面
+
+基于注解的权限和角色验证：
+
+```java
+@RestController
+public class AdminController {
+    
+    @RequiresPermissions("user:delete")
+    @DeleteMapping("/users/{id}")
+    public R deleteUser(@PathVariable Long id) {
+        // 需要user:delete权限
+        return R.ok();
+    }
+    
+    @RequiresRoles("admin")
+    @GetMapping("/admin/stats")
+    public R getStats() {
+        // 需要admin角色
+        return R.ok();
+    }
+}
+```
+
+### 7. 分布式锁
+
+Redis实现的可重入锁：
+
+```java
+@Autowired
+private RedisReentrantLock redisLock;
+
+public void processOrder(String orderId) {
+    String lockKey = "order:" + orderId;
+    if (redisLock.tryLock(lockKey, 30, TimeUnit.SECONDS)) {
+        try {
+            // 业务处理
+        } finally {
+            redisLock.unlock(lockKey);
+        }
     }
 }
 ```
