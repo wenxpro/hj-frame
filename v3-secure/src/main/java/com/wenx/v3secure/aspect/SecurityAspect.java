@@ -36,6 +36,8 @@ public class SecurityAspect {
     @Pointcut("@annotation(com.wenx.v3secure.annotation.RequiresRoles)")
     public void requiresRolesPointcut() {}
     
+
+    
     /**
      * 处理权限验证
      */
@@ -51,7 +53,7 @@ public class SecurityAspect {
             return joinPoint.proceed();
         }
         
-        // 获取方法上的注解
+        // 获取方法上的权限注解
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         RequiresPermissions annotation = method.getAnnotation(RequiresPermissions.class);
@@ -95,7 +97,7 @@ public class SecurityAspect {
             return joinPoint.proceed();
         }
         
-        // 获取方法上的注解
+        // 获取方法上的角色注解
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         RequiresRoles annotation = method.getAnnotation(RequiresRoles.class);

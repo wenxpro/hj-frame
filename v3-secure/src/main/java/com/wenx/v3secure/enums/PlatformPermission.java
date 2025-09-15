@@ -19,6 +19,24 @@ public class PlatformPermission {
     public static final String SYSTEM_CONFIG_CODE = "platform:system:config";
     public static final String SYSTEM_ALL_CODE = "platform:system:*";
     
+    // 系统模块权限常量
+    public static final String SYS_USER_READ_CODE = "sys:user:read";
+    public static final String SYS_USER_WRITE_CODE = "sys:user:write";
+    public static final String SYS_USER_DELETE_CODE = "sys:user:delete";
+    public static final String SYS_ROLE_READ_CODE = "sys:role:read";
+    public static final String SYS_ROLE_WRITE_CODE = "sys:role:write";
+    public static final String SYS_ROLE_DELETE_CODE = "sys:role:delete";
+    public static final String SYS_MENU_READ_CODE = "sys:menu:read";
+    public static final String SYS_MENU_WRITE_CODE = "sys:menu:write";
+    public static final String SYS_MENU_DELETE_CODE = "sys:menu:delete";
+    public static final String SYS_PERMISSION_READ_CODE = "sys:permission:read";
+    public static final String SYS_PERMISSION_WRITE_CODE = "sys:permission:write";
+    public static final String SYS_PERMISSION_DELETE_CODE = "sys:permission:delete";
+    public static final String SYS_DEPT_READ_CODE = "sys:dept:read";
+    public static final String SYS_DEPT_WRITE_CODE = "sys:dept:write";
+    public static final String SYS_DEPT_DELETE_CODE = "sys:dept:delete";
+    public static final String SYS_ALL_CODE = "sys:*";
+    
     private final String code;
     private final String name;
     private final String description;
@@ -68,4 +86,59 @@ public class PlatformPermission {
         
         return false;
     }
+    
+    /**
+     * 判断是否为系统权限
+     * @param permission 权限代码
+     * @return 是否为系统权限
+     */
+    public static boolean isSystemPermission(String permission) {
+        return permission != null && permission.startsWith("sys:");
+    }
+    
+    /**
+     * 判断是否为平台权限
+     * @param permission 权限代码
+     * @return 是否为平台权限
+     */
+    public static boolean isPlatformPermission(String permission) {
+        return permission != null && permission.startsWith("platform:");
+    }
+    
+    /**
+     * 解析权限模块
+     * @param permission 权限代码
+     * @return 权限模块 (如: user, role, menu等)
+     */
+    public static String parseModule(String permission) {
+        if (permission == null || !permission.contains(":")) {
+            return null;
+        }
+        
+        String[] parts = permission.split(":");
+        if (parts.length >= 2) {
+            return parts[1];
+        }
+        
+        return null;
+    }
+    
+    /**
+     * 解析权限操作
+     * @param permission 权限代码
+     * @return 权限操作 (如: read, write, delete等)
+     */
+    public static String parseAction(String permission) {
+        if (permission == null || !permission.contains(":")) {
+            return null;
+        }
+        
+        String[] parts = permission.split(":");
+        if (parts.length >= 3) {
+            return parts[2];
+        }
+        
+        return null;
+    }
+
 }

@@ -7,12 +7,12 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class BaseOrgEntity extends BaseEntity {
+public class BaseDeptEntity extends BaseEntity {
 
 
     /**
-     * 组织id
+     * 部门id
      */
-    @TableField(value = "org_id", fill = FieldFill.INSERT)
-    private Long orgId;
+    @TableField(value = "department_id", fill = FieldFill.INSERT)
+    private Long departmentId;
 }
