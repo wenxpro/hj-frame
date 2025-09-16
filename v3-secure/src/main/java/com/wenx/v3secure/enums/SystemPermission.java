@@ -39,6 +39,13 @@ public class SystemPermission {
     public static final String DEPT_MANAGE_CODE = "system:dept:manage";
     public static final String DEPT_ALL_CODE = "system:dept:*";
     
+    // 团队管理权限
+    public static final String TEAM_READ_CODE = "system:team:read";
+    public static final String TEAM_MANAGE_CODE = "system:team:manage";
+    public static final String TEAM_ALL_CODE = "system:team:*";
+    public static final String TEAM_MEMBER_MANAGE_CODE = "system:team:member:manage";
+    public static final String TEAM_ROLE_MANAGE_CODE = "system:team:role:manage";
+    
     // 业务功能权限
     public static final String BUSINESS_READ_CODE = "system:business:read";
     public static final String BUSINESS_MANAGE_CODE = "system:business:manage";

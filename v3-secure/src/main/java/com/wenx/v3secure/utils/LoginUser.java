@@ -51,14 +51,7 @@ public class LoginUser {
         return user != null ? user.getUsername() : null;
     }
     
-    /**
-     * 获取当前用户账号
-     */
-    public static String getAccount() {
-        UserDetail user = getUser();
-        return user != null ? user.getAccount() : null;
-    }
-    
+
     /**
      * 获取当前用户组织ID
      */
