@@ -29,7 +29,7 @@ public class TraceContextManager {
     public static final String USER_ID = "user-id";
     public static final String USERNAME = "username";
     public static final String TENANT_ID = "tenant-id";
-    public static final String ORG_ID = "org-id";
+    public static final String DEPT_ID = "department-id";
     public static final String CLIENT_IP = "client-ip";
     public static final String REQUEST_START_TIME = "request-start-time";
     public static final String USER_ROLES = "user-roles";
@@ -53,11 +53,10 @@ public class TraceContextManager {
      * @param userId 用户ID
      * @param username 用户名
      * @param tenantId 租户ID
-     * @param orgId 组织ID
      * @param clientIp 客户端IP
      */
     public static void initTraceContext(String traceId, String spanId, String userId, 
-                                      String username, String tenantId, String orgId, String clientIp) {
+                                      String username, String tenantId, String clientIp) {
         try {
             // 清理现有上下文
             clearTraceContext();
@@ -89,11 +88,6 @@ public class TraceContextManager {
             if (StrUtil.isNotBlank(tenantId)) {
                 setContextValue(TENANT_ID, tenantId);
                 MDC.put(TENANT_ID, tenantId);
-            }
-            
-            if (StrUtil.isNotBlank(orgId)) {
-                setContextValue(ORG_ID, orgId);
-                MDC.put(ORG_ID, orgId);
             }
             
             if (StrUtil.isNotBlank(clientIp)) {
@@ -216,9 +210,9 @@ public class TraceContextManager {
      * 
      * @return 组织ID
      */
-    public static String getOrgId() {
-        String orgId = MDC.get(ORG_ID);
-        return StrUtil.isNotBlank(orgId) ? orgId : getContextValue(ORG_ID);
+    public static String getDeptId() {
+        String departmentId = MDC.get(DEPT_ID);
+        return StrUtil.isNotBlank(departmentId) ? departmentId : getContextValue(DEPT_ID);
     }
     
     /**

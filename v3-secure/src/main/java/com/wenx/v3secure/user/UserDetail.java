@@ -33,7 +33,7 @@ public class UserDetail implements UserDetails {
     private Integer gender;
     private String email;
     private String mobile;
-    private Long orgId;
+    private Long departmentId;
     private Integer status;
     private Integer superAdmin;
 

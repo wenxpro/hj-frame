@@ -56,10 +56,10 @@ public class MybatisPlusMetaObjectHandler implements MetaObjectHandler {
             }
             
             // 如果是组织相关实体，填充组织ID
-            if (metaObject.hasSetter("orgId")) {
-                Long orgId = LoginUser.getOrgId();
-                if (orgId != null) {
-                    this.strictInsertFill(metaObject, "orgId", Long.class, orgId);
+            if (metaObject.hasSetter("departmentId")) {
+                Long departmentId = LoginUser.getDepartmentId();
+                if (departmentId != null) {
+                    this.strictInsertFill(metaObject, "departmentId", Long.class, departmentId);
                 }
             }
             

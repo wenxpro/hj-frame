@@ -140,15 +140,6 @@
         </logger>
     </springProfile>
 
-    <!-- 切面日志 -->
-    <logger name="com.wenx.v3log.aspect.ControllerAspect" level="INFO" additivity="false">
-        <appender-ref ref="HTTP_LOG"/>
-    </logger>
-    
-    <logger name="com.wenx.v3log.aspect.ServiceAspect" level="INFO" additivity="false">
-        <appender-ref ref="SERVICE_LOG"/>
-    </logger>
-
     <!-- Spring框架日志 -->
     <logger name="org.springframework" level="WARN"/>
     <logger name="org.springframework.web" level="WARN"/>

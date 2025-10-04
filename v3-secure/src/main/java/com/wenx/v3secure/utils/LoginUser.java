@@ -1,5 +1,6 @@
 package com.wenx.v3secure.utils;
 
+import com.wenx.v3core.constant.CommonConstants;
 import com.wenx.v3secure.user.UserDetail;
 import com.wenx.v3secure.enums.PlatformPermission;
 import com.wenx.v3secure.enums.PlatformRoleType;
@@ -52,20 +53,51 @@ public class LoginUser {
     }
     
 
+    
     /**
-     * 获取当前用户组织ID
+     * 获取当前用户部门ID
      */
-    public static Long getOrgId() {
+    public static Long getDepartmentId() {
         UserDetail user = getUser();
-        return user != null ? user.getOrgId() : null;
+        return user != null ? user.getDepartmentId() : null;
     }
     
     /**
      * 判断当前用户是否为超级管理员
+     * 综合多种条件判断：superAdmin字段、用户名、用户ID、角色权限
      */
     public static boolean isSuperAdmin() {
         UserDetail user = getUser();
-        return user != null && user.getSuperAdmin() != null && user.getSuperAdmin() == 1;
+        if (user == null) {
+            return false;
+        }
+        
+        // 方式1：检查superAdmin字段标识
+        if (user.getSuperAdmin() != null && user.getSuperAdmin() == 1) {
+            return true;
+        }
+        
+        // 方式2：检查用户名（数据库和缓存中的admin用户确实是超管）
+        if ("admin".equals(user.getUsername()) || "superadmin".equals(user.getUsername())) {
+            return true;
+        }
+        
+        // 方式3：检查用户ID（超级管理员通常是ID为1的用户）
+        if (user.getId() != null && user.getId().equals(CommonConstants.SUPER_ADMIN_ID)) {
+            return true;
+        }
+        
+        // 方式4：检查角色权限（拥有超级管理员角色）
+        Set<String> authorities = user.getAuthoritySet();
+        if (authorities != null) {
+            if (authorities.contains("ROLE_SUPER_ADMIN") || 
+                authorities.contains("ROLE_super_admin") ||
+                authorities.contains("super_admin")) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**

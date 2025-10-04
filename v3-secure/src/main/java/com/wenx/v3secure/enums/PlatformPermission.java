@@ -18,24 +18,7 @@ public class PlatformPermission {
     public static final String PLATFORM_MENU_READ_CODE = "platform:menu:read";
     public static final String SYSTEM_CONFIG_CODE = "platform:system:config";
     public static final String SYSTEM_ALL_CODE = "platform:system:*";
-    
-    // 系统模块权限常量
-    public static final String SYS_USER_READ_CODE = "sys:user:read";
-    public static final String SYS_USER_WRITE_CODE = "sys:user:write";
-    public static final String SYS_USER_DELETE_CODE = "sys:user:delete";
-    public static final String SYS_ROLE_READ_CODE = "sys:role:read";
-    public static final String SYS_ROLE_WRITE_CODE = "sys:role:write";
-    public static final String SYS_ROLE_DELETE_CODE = "sys:role:delete";
-    public static final String SYS_MENU_READ_CODE = "sys:menu:read";
-    public static final String SYS_MENU_WRITE_CODE = "sys:menu:write";
-    public static final String SYS_MENU_DELETE_CODE = "sys:menu:delete";
-    public static final String SYS_PERMISSION_READ_CODE = "sys:permission:read";
-    public static final String SYS_PERMISSION_WRITE_CODE = "sys:permission:write";
-    public static final String SYS_PERMISSION_DELETE_CODE = "sys:permission:delete";
-    public static final String SYS_DEPT_READ_CODE = "sys:dept:read";
-    public static final String SYS_DEPT_WRITE_CODE = "sys:dept:write";
-    public static final String SYS_DEPT_DELETE_CODE = "sys:dept:delete";
-    public static final String SYS_ALL_CODE = "sys:*";
+
     
     private final String code;
     private final String name;
