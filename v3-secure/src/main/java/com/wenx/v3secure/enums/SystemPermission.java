@@ -8,7 +8,7 @@ package com.wenx.v3secure.enums;
  */
 public class SystemPermission {
     
-    // 系统级权限常量定义
+    // 系统级权限常量定义（以数据库 sys_permission.code 为准，统一 system: 前缀）
     public static final String SYSTEM_ALL_CODE = "system:*";
     public static final String SYSTEM_READ_CODE = "system:read";
     public static final String SYSTEM_CONFIG_CODE = "system:config";
@@ -105,7 +105,7 @@ public class SystemPermission {
             return true;
         }
         
-        // 通配符匹配 (如 system:user:* 包含 system:user:read)
+        // 通配符匹配 (如 sys:user:* 包含 sys:user:read)
         if (userPermission.endsWith(":*")) {
             String prefix = userPermission.substring(0, userPermission.length() - 1);
             return requiredPermission.startsWith(prefix);

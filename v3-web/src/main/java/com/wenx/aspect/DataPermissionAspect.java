@@ -3,14 +3,12 @@ package com.wenx.aspect;
 import com.wenx.anno.DataPermission;
 import com.wenx.permission.context.DataPermissionContextHolder;
 import com.wenx.permission.context.PermissionConditionInfo;
-import com.wenx.permission.service.PermissionVerificationService;
 import com.wenx.v3secure.utils.LoginUser;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +18,9 @@ import java.util.List;
 /**
  * 数据权限AOP切面 - 重构版
  * 采用权限验证与SQL注入分离的架构设计
- * 在Service方法执行前进行权限验证，将验证结果传递给SQL拦截器
+ * - type=CUSTOM：执行 count 查询校验当前用户是否满足 sys_permission_condition 中的条件，
+ *   count = 0 时抛出异常阻断操作（读写通用）
+ * - 其他 type：构建 SQL 条件存入上下文，由 MyBatis 拦截器注入 WHERE 子句
  * 
  * @author wenx
  * @since 1.0.0
@@ -30,9 +30,6 @@ import java.util.List;
 @Order(100) // 确保在事务切面之前执行
 @Slf4j
 public class DataPermissionAspect {
-    
-    @Autowired(required = false)
-    private PermissionVerificationService permissionVerificationService;
     
     /**
      * 环绕通知：处理@DataPermission注解
@@ -64,18 +61,13 @@ public class DataPermissionAspect {
         }
         
         try {
-            // 权限验证阶段：验证权限条件但不直接注入SQL
+            // 构建 SQL 条件存入上下文，由 MyBatis 拦截器注入 WHERE
             performPermissionVerification(dataPermission);
-            
-            // 标记权限验证完成
             DataPermissionContextHolder.setPermissionVerified(true);
-            
-            log.debug("执行方法 {}.{} 的数据权限控制，已验证的条件数量: {}", 
-                     method.getDeclaringClass().getSimpleName(), 
+            log.debug("执行方法 {}.{} 的数据权限控制，已验证的条件数量: {}",
+                     method.getDeclaringClass().getSimpleName(),
                      method.getName(),
                      DataPermissionContextHolder.getAllConditionInfos().size());
-            
-            // 执行目标方法
             return joinPoint.proceed();
             
         } finally {
@@ -86,47 +78,13 @@ public class DataPermissionAspect {
     
     /**
      * 执行权限验证
-     * 核心改进：只进行权限验证，将验证结果存储到上下文中
-     * SQL注入由MyBatis拦截器在实际查询时处理
+     * 构建 SQL 条件存入上下文，由 MyBatis 拦截器注入 WHERE 子句
      */
     private void performPermissionVerification(DataPermission dataPermission) {
         String[] tables = dataPermission.tables();
         DataPermission.PermissionType type = dataPermission.type();
         String customCondition = dataPermission.condition();
-        
-        // 如果没有配置权限验证服务，降级到简单模式
-        if (permissionVerificationService == null) {
-            performSimplePermissionVerification(tables, type, customCondition);
-            return;
-        }
-        
-        // 使用权限验证服务进行完整验证
-        try {
-            List<PermissionConditionInfo> conditionInfos = permissionVerificationService
-                    .verifyAndBuildConditions(tables, type.name(), customCondition);
-                    
-            // 将验证结果存储到上下文
-            for (PermissionConditionInfo conditionInfo : conditionInfos) {
-                if (conditionInfo.getStatus() == PermissionConditionInfo.VerificationStatus.VERIFIED ||
-                    conditionInfo.getStatus() == PermissionConditionInfo.VerificationStatus.SKIPPED) {
-                    
-                    DataPermissionContextHolder.setConditionInfo(conditionInfo.getTableName(), conditionInfo);
-                    
-                    log.debug("权限验证完成 - 表: {}, 状态: {}, 条件: {}", 
-                             conditionInfo.getTableName(), 
-                             conditionInfo.getStatus(),
-                             conditionInfo.getFinalCondition());
-                } else {
-                    log.warn("权限验证失败 - 表: {}, 错误: {}", 
-                            conditionInfo.getTableName(), 
-                            conditionInfo.getErrorMessage());
-                }
-            }
-            
-        } catch (Exception e) {
-            log.error("权限验证服务调用失败，降级到简单模式: {}", e.getMessage());
-            performSimplePermissionVerification(tables, type, customCondition);
-        }
+        performSimplePermissionVerification(tables, type, customCondition);
     }
     
     /**

@@ -4,6 +4,11 @@ import com.wenx.anno.FieldPermission;
 import com.wenx.v3secure.utils.LoginUser;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
@@ -26,6 +31,17 @@ public class FieldPermissionContextHolder {
      * key: 类名.字段名, value: 字段权限信息
      */
     private static final Map<String, FieldPermissionInfo> FIELD_PERMISSION_CACHE = new ConcurrentHashMap<>();
+
+    /**
+     * SpEL 表达式解析器（线程安全，全局复用）
+     */
+    private static final ExpressionParser SPEL_PARSER = new SpelExpressionParser();
+
+    /**
+     * SpEL 表达式缓存，避免重复解析
+     * key: 表达式字符串, value: 已编译的 Expression
+     */
+    private static final Map<String, Expression> EXPRESSION_CACHE = new ConcurrentHashMap<>();
     
     /**
      * 线程本地的字段访问控制上下文
@@ -161,95 +177,76 @@ public class FieldPermissionContextHolder {
     }
     
     /**
-     * 评估自定义条件表达式
-     * 简化版实现，实际项目中可以集成SpEL表达式引擎
+     * 使用 SpEL 评估自定义条件表达式
+     * <p>
+     * 可用变量：
+     * <ul>
+     *   <li>{@code #user}  - 当前登录用户的 UserSpELContext（userId, username, departmentId, departmentIds, superAdmin）</li>
+     *   <li>{@code #target} - 被校验的数据对象本身</li>
+     * </ul>
+     * 示例：
+     * <pre>
+     *   "#user.departmentId == #target.departmentId"
+     *   "#user.userId == #target.createBy"
+     *   "#target.status == 1 and #user.departmentId != null"
+     * </pre>
      */
     private static boolean evaluateCondition(String condition, Object targetObject) {
         try {
-            // 简化版条件评估，实际可以使用SpEL
-            if (condition.contains("user.departmentId == target.departmentId")) {
-                return checkDepartmentMatch(targetObject);
-            }
-            
-            if (condition.contains("user.userId == target.createBy")) {
-                return checkCreatorMatch(targetObject);
-            }
-            
-            // 默认返回true，实际项目中需要完整的SpEL支持
-            log.warn("不支持的条件表达式: {}", condition);
-            return true;
-            
+            Expression expression = EXPRESSION_CACHE.computeIfAbsent(
+                    condition, SPEL_PARSER::parseExpression);
+
+            EvaluationContext context = buildSpELContext(targetObject);
+            Boolean result = expression.getValue(context, Boolean.class);
+            return Boolean.TRUE.equals(result);
         } catch (Exception e) {
-            log.error("条件表达式评估失败: {}", condition, e);
+            log.error("SpEL 条件表达式评估失败 [{}]: {}", condition, e.getMessage());
             return false;
         }
     }
-    
+
     /**
-     * 检查部门匹配
+     * 构建 SpEL 评估上下文
+     * 注入 #user 和 #target 两个根变量
      */
-    private static boolean checkDepartmentMatch(Object targetObject) {
-        try {
-            Long userDeptId = LoginUser.getDepartmentId();
-            if (userDeptId == null) {
-                return false;
-            }
-            
-            Field deptField = getField(targetObject.getClass(), "departmentId");
-            if (deptField == null) {
-                deptField = getField(targetObject.getClass(), "deptId");
-            }
-            
-            if (deptField != null) {
-                Object targetDeptId = deptField.get(targetObject);
-                return userDeptId.equals(targetDeptId);
-            }
-            
-            return false;
-        } catch (Exception e) {
-            log.error("部门匹配检查失败", e);
-            return false;
-        }
+    private static EvaluationContext buildSpELContext(Object targetObject) {
+        StandardEvaluationContext context = new StandardEvaluationContext();
+        context.setVariable("user", new UserSpELContext());
+        context.setVariable("target", targetObject);
+        return context;
     }
-    
+
     /**
-     * 检查创建者匹配
-     */
-    private static boolean checkCreatorMatch(Object targetObject) {
-        try {
-            Long userId = LoginUser.getUserId();
-            if (userId == null) {
-                return false;
-            }
-            
-            Field createByField = getField(targetObject.getClass(), "createBy");
-            if (createByField == null) {
-                createByField = getField(targetObject.getClass(), "createUser");
-            }
-            
-            if (createByField != null) {
-                Object createBy = createByField.get(targetObject);
-                return userId.equals(createBy);
-            }
-            
-            return false;
-        } catch (Exception e) {
-            log.error("创建者匹配检查失败", e);
-            return false;
-        }
-    }
-    
-    /**
-     * 检查数据所有权
+     * 检查数据所有权（PRIVATE 级别使用）
+     * 优先检查创建者，再检查部门归属
      */
     private static boolean checkDataOwnership(Object targetObject) {
-        // 首先检查是否为创建者
-        if (checkCreatorMatch(targetObject)) {
+        // 优先走 SpEL 创建者匹配
+        boolean creatorMatch = evaluateCondition("#user.userId == #target.createBy", targetObject);
+        if (creatorMatch) {
             return true;
         }
-        
-        // 然后检查是否为同部门
-        return checkDepartmentMatch(targetObject);
+        // 再走部门匹配
+        return evaluateCondition("#user.departmentId == #target.departmentId", targetObject);
+    }
+
+    /**
+     * 暴露给 SpEL 的用户上下文对象
+     * 通过 #user.xxx 访问当前登录用户的属性
+     */
+    @Getter
+    public static class UserSpELContext {
+        private final Long userId;
+        private final String username;
+        private final Long departmentId;
+        private final boolean superAdmin;
+
+        public UserSpELContext() {
+            this.userId = LoginUser.getUserId();
+            this.username = LoginUser.getUsername();
+            this.departmentId = LoginUser.getDepartmentId();
+            this.superAdmin = LoginUser.isSuperAdmin();
+        }
     }
     
     /**

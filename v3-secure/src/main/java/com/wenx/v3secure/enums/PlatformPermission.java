@@ -76,7 +76,7 @@ public class PlatformPermission {
      * @return 是否为系统权限
      */
     public static boolean isSystemPermission(String permission) {
-        return permission != null && permission.startsWith("sys:");
+        return permission != null && permission.startsWith("system:");
     }
     
     /**
