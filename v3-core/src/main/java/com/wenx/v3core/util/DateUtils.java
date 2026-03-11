@@ -206,7 +206,7 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
      */
     public static List<String> getDayByMonth(int yearParam, int monthParam) {
         List<String> result = new ArrayList<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+        SimpleDateFormat sdf = new SimpleDateFormat(YYYY_MM_DD);
         Date _date = null;
 
         try {
@@ -215,10 +215,10 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
             calendar.setTime(_date);
             int actualMaximum = calendar.getActualMaximum(Calendar.DAY_OF_MONTH);
             for (int i = 1; i <= actualMaximum; i++) {
-                result.add(yearParam + "/" + String.format("%02d", monthParam) + "/" + String.format("%02d", i));
+                    result.add(yearParam + "/" + String.format("%02d", monthParam) + "/" + String.format("%02d", i));
             }
         } catch (ParseException e) {
-            e.printStackTrace();
+            throw new IllegalArgumentException("无效的年月参数: " + yearParam + "-" + monthParam, e);
 
         }
         return result;
