@@ -50,6 +50,9 @@ public class MessageBus {
      */
     @SneakyThrows
     public <T, R> R send(T message) {
+        if (message == null) {
+            throw new ServiceException("消息不能为空");
+        }
         log.debug("发送消息: {}", message.getClass().getSimpleName());
         
         // 验证消息类型
@@ -82,12 +85,19 @@ public class MessageBus {
      * 验证消息类型
      */
     private void validateMessage(Object message) {
+        if (message == null) {
+            throw new ServiceException("消息不能为空");
+        }
         if (!(message instanceof Message)) {
             throw new ServiceException("消息必须继承自Message基类: " + message.getClass().getSimpleName());
         }
         
         Message msg = (Message) message;
         
+        if (msg.getMessageType() == null || msg.getMessageType().trim().isEmpty()) {
+            throw new ServiceException("消息类型不能为空");
+        }
+
         // 验证Command和Query的互斥性
         if (msg.isCommand() && msg.isQuery()) {
             throw new ServiceException("消息不能同时是Command和Query: " + message.getClass().getSimpleName());
