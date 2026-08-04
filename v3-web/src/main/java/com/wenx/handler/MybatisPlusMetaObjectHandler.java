@@ -62,6 +62,16 @@ public class MybatisPlusMetaObjectHandler implements MetaObjectHandler {
                     this.strictInsertFill(metaObject, "departmentId", Long.class, departmentId);
                 }
             }
+
+            // P2：租户隔离——插入时自动填充 tenantId（当前值空才填，登录用户取自身租户）
+            if (metaObject.hasSetter("tenantId") && metaObject.getValue("tenantId") == null) {
+                Long tenantId = LoginUser.getTenantId();
+                if (tenantId != null) {
+                    this.setFieldValByName("tenantId", tenantId, metaObject);
+                } else if (LoginUser.isSuperAdmin()) {
+                    this.setFieldValByName("tenantId", 1L, metaObject);
+                }
+            }
             
         } catch (Exception e) {
             log.warn("插入填充失败: {}", e.getMessage());

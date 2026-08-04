@@ -3,9 +3,6 @@ package com.wenx.v3log;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
@@ -13,255 +10,141 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
- * 请求拦截器 - 专注于链路追踪ID管理
- * <p>与ControllerAspect的职责分工：</p>
+ * 请求拦截器 - 业务请求上下文管理（log 标准化改造）
+ *
+ * <p>与 ControllerAspect 的职责分工：</p>
  * <ul>
- *   <li>RequestInterceptor：负责追踪ID生成、MDC管理</li>
- *   <li>ControllerAspect：负责HTTP请求日志记录、性能监控</li>
+ *   <li>RequestInterceptor：负责业务请求 ID 生成、client-ip / 开始时间等 MDC 上下文</li>
+ *   <li>ControllerAspect：负责 HTTP 请求日志记录、性能监控</li>
  * </ul>
- * 
+ *
+ * <p>链路追踪（traceId/spanId）不再由此处理：由 Micrometer Tracing 标准方案
+ * 自动写入 MDC（键 traceId/spanId）并通过 W3C traceparent 跨服务传播（log-starter）。</p>
+ *
  * @author wenx
- * @version 3.0
+ * @version 4.0
  */
 @Slf4j
 public class RequestInterceptor implements HandlerInterceptor {
 
     /**
-     * 请求ID的MDC键名
+     * 业务请求 ID 的 MDC 键名
      */
     public static final String REQUEST_ID_KEY = "request-id";
-    
+
     /**
-     * 请求开始时间的MDC键名
+     * 请求开始时间的 MDC 键名
      */
     public static final String REQUEST_START_TIME_KEY = "request-start-time";
-    
 
-    
     /**
      * 客户端IP的MDC键名
      */
     public static final String CLIENT_IP_KEY = "client-ip";
-    
-    /**
-     * 支持的追踪ID请求头名称（按优先级排序）
-     */
-    private static final String[] TRACE_HEADERS = {
-        REQUEST_ID_KEY,
-        "X-Trace-Id",
-        "X-Request-Id", 
-        "traceId",
-        "trace-id"
-    };
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 生成或获取请求追踪ID
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        // 业务请求 ID（支持跨服务透传的 header 与参数）
         String requestId = generateRequestId(request);
-        
 
-        
         // 获取客户端IP
         String clientIp = extractClientIp(request);
-        
+
         // 设置MDC上下文
         MDC.put(REQUEST_ID_KEY, requestId);
         MDC.put(REQUEST_START_TIME_KEY, String.valueOf(System.currentTimeMillis()));
         MDC.put(CLIENT_IP_KEY, clientIp);
-        
 
-        
-        // 设置Jaeger trace信息到MDC（如果可用）
-        JaegerTraceUtil.setMDCTraceInfo();
-        
-        // 简单的追踪日志（仅DEBUG级别）
         if (log.isDebugEnabled()) {
-            log.debug("链路追踪开始 - ID: {}, IP: {}, URI: {}", requestId, clientIp, request.getRequestURI());
+            log.debug("请求上下文 - ID: {}, IP: {}, URI: {}", requestId, clientIp, request.getRequestURI());
         }
-        
+
         return true;
     }
 
     @Override
     public void afterCompletion(@NotNull HttpServletRequest request, HttpServletResponse response,
-                                Object handler, Exception ex) throws Exception {
+                                Object handler, Exception ex) {
         try {
             String requestId = MDC.get(REQUEST_ID_KEY);
-            
-            // 将追踪ID添加到响应头，支持跨服务调用
+
+            // 业务请求 ID 回写响应头，便于联调排查
             if (StrUtil.isNotBlank(requestId)) {
                 response.addHeader(REQUEST_ID_KEY, requestId);
-                response.addHeader("X-Trace-Id", requestId);
             }
-            
-            // 异常情况的简单记录（详细日志由ControllerAspect处理）
-            if (ex != null && log.isDebugEnabled()) {
-                log.debug("链路追踪异常完成 - ID: {}, 异常: {}", requestId, ex.getClass().getSimpleName());
-            } else if (log.isDebugEnabled()) {
-                log.debug("链路追踪正常完成 - ID: {}", requestId);
-            }
-            
         } finally {
-            // 清理MDC上下文，避免内存泄漏
+            // 清理MDC上下文，避免内存泄漏（traceId 等由 micrometer 统一管理）
             MDC.clear();
         }
     }
 
     /**
-     * 生成或获取请求追踪ID
-     * 
-     * @param request HTTP请求对象
-     * @return 请求追踪ID
+     * 生成或获取业务请求 ID
      */
     private String generateRequestId(HttpServletRequest request) {
-        // 优先从请求头中获取现有的追踪ID（支持链路传递）
-        for (String headerName : TRACE_HEADERS) {
-            String traceId = request.getHeader(headerName);
-            if (StrUtil.isNotBlank(traceId)) {
-                log.debug("使用现有追踪ID: {} = {}", headerName, traceId);
-                return traceId;
-            }
+        // 优先从请求头透传（跨服务保留同一业务请求 ID）
+        String headerId = request.getHeader(REQUEST_ID_KEY);
+        if (StrUtil.isNotBlank(headerId)) {
+            return headerId;
         }
-        
-        // 从请求参数中获取
-        String paramTraceId = request.getParameter(REQUEST_ID_KEY);
-        if (StrUtil.isNotBlank(paramTraceId)) {
-            log.debug("使用参数中的追踪ID: {}", paramTraceId);
-            return paramTraceId;
+        String paramId = request.getParameter(REQUEST_ID_KEY);
+        if (StrUtil.isNotBlank(paramId)) {
+            return paramId;
         }
-        
-        // 生成新的追踪ID
-        String newRequestId = generateNewRequestId();
-        log.debug("生成新追踪ID: {}", newRequestId);
-        return newRequestId;
+        return generateNewRequestId();
     }
-    
+
     /**
-     * 生成新的请求ID
+     * 生成新的业务请求 ID
      * 格式: yyyyMMddHHmmssSSS + 5位随机字符
-     * 
-     * @return 新的请求ID
      */
     private String generateNewRequestId() {
         String timestamp = DateUtil.format(new Date(), "yyyyMMddHHmmssSSS");
         String randomSuffix = IdUtil.simpleUUID().substring(0, 5).toUpperCase();
         return timestamp + randomSuffix;
     }
-    
 
-    
     /**
-     * 提取客户端真实IP地址
-     * 
-     * @param request HTTP请求对象
-     * @return 客户端IP地址
+     * 提取客户端 IP
      */
     private String extractClientIp(HttpServletRequest request) {
-        String[] ipHeaders = {
-            "X-Forwarded-For",
-            "X-Real-IP", 
-            "Proxy-Client-IP",
-            "WL-Proxy-Client-IP",
-            "HTTP_CLIENT_IP",
-            "HTTP_X_FORWARDED_FOR"
-        };
-        
-        for (String header : ipHeaders) {
-            String ip = request.getHeader(header);
-            if (StrUtil.isNotBlank(ip) && !"unknown".equalsIgnoreCase(ip)) {
-                // 多级代理的情况，取第一个IP
-                if (ip.contains(",")) {
-                    ip = ip.split(",")[0].trim();
-                }
-                if (isValidIp(ip)) {
-                    return ip;
-                }
-            }
+        String ip = request.getHeader("X-Forwarded-For");
+        if (StrUtil.isNotBlank(ip)) {
+            int idx = ip.indexOf(',');
+            return idx > 0 ? ip.substring(0, idx).trim() : ip.trim();
         }
-        
-        // 最后尝试从RemoteAddr获取
-        String remoteAddr = request.getRemoteAddr();
-        return StrUtil.isNotBlank(remoteAddr) ? remoteAddr : "unknown";
+        return request.getRemoteAddr();
     }
-    
+
     /**
-     * 验证IP地址格式是否有效
-     * 
-     * @param ip IP地址字符串
-     * @return 是否为有效IP
-     */
-    private boolean isValidIp(String ip) {
-        if (StrUtil.isBlank(ip) || "0:0:0:0:0:0:0:1".equals(ip)) {
-            return false;
-        }
-        
-        // 简单的IPv4格式验证
-        if (ip.contains(".")) {
-            String[] parts = ip.split("\\.");
-            if (parts.length != 4) {
-                return false;
-            }
-            
-            try {
-                for (String part : parts) {
-                    int num = Integer.parseInt(part);
-                    if (num < 0 || num > 255) {
-                        return false;
-                    }
-                }
-                return true;
-            } catch (NumberFormatException e) {
-                return false;
-            }
-        }
-        
-        // IPv6或其他格式认为有效（简化处理）
-        return true;
-    }
-    
-    /**
-     * 静态方法：获取当前请求的追踪ID
-     * 
-     * @return 当前请求的追踪ID，如果不存在则返回null
+     * 获取当前业务请求 ID
      */
     public static String getCurrentRequestId() {
         return MDC.get(REQUEST_ID_KEY);
     }
-    
 
-    
     /**
-     * 静态方法：获取当前请求的客户端IP
-     * 
-     * @return 当前请求的客户端IP，如果不存在则返回null
+     * 获取当前客户端 IP
      */
     public static String getCurrentClientIp() {
         return MDC.get(CLIENT_IP_KEY);
     }
-    
+
     /**
-     * 静态方法：获取当前请求的开始时间
-     * 
-     * @return 当前请求的开始时间戳，如果不存在则返回0
+     * 获取当前请求开始时间
      */
     public static long getCurrentStartTime() {
-        String startTimeStr = MDC.get(REQUEST_START_TIME_KEY);
-        if (StrUtil.isNotBlank(startTimeStr)) {
-            try {
-                return Long.parseLong(startTimeStr);
-            } catch (NumberFormatException e) {
-                return 0L;
-            }
+        String startTime = MDC.get(REQUEST_START_TIME_KEY);
+        if (StrUtil.isBlank(startTime)) {
+            return 0L;
         }
-        return 0L;
+        try {
+            return Long.parseLong(startTime);
+        } catch (NumberFormatException e) {
+            return 0L;
+        }
     }
-    
-
-    
-
 }

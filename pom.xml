@@ -5,9 +5,9 @@
     
     <parent>
         <groupId>com.wenx</groupId>
-        <artifactId>v3-cloud</artifactId>
+        <artifactId>hj-parent</artifactId>
         <version>${revision}</version>
-        <relativePath>v3-cloud/pom.xml</relativePath>
+        <relativePath>hj-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>v3-frame</artifactId>
@@ -21,7 +21,6 @@
         <module>v3-log</module>
         <module>v3-redis</module>
         <module>v3-secure</module>
-        <module>v3-seata</module>
         <module>v3-web</module>
     </modules>
 

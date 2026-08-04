@@ -10,6 +10,7 @@ import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
+import java.util.regex.Pattern;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.springframework.util.StringUtils;
@@ -94,7 +95,7 @@ public class DataPermissionInnerInterceptor implements InnerInterceptor {
                 }
                 
                 String condition = conditionInfo.getFinalCondition();
-                if (StringUtils.hasText(condition) && sql.toLowerCase().contains(tableName.toLowerCase())) {
+                if (StringUtils.hasText(condition) && matchesTable(sql, tableName)) {
                     sql = addWhereCondition(sql, condition);
                     log.debug("为表 {} 注入权限条件: {}", tableName, condition);
                 }
@@ -108,6 +109,13 @@ public class DataPermissionInnerInterceptor implements InnerInterceptor {
         }
     }
     
+    /**
+     * 精确匹配 SQL 中的目标表名（词边界，避免 sys_user 误命中 sys_user_role）
+     */
+    private boolean matchesTable(String sql, String tableName) {
+        return Pattern.compile("(?is)\\b" + Pattern.quote(tableName) + "\\b").matcher(sql).find();
+    }
+
     /**
      * 在SQL中添加WHERE条件
      */

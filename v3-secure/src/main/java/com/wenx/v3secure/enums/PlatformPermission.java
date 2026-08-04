@@ -43,85 +43,26 @@ public class PlatformPermission {
     }
     
     /**
-     * 检查权限是否匹配
-     * 支持通配符权限检查
+     * 检查权限是否匹配（委托给 PermissionUtils）
      */
     public static boolean hasPermission(String userPermission, String requiredPermission) {
-        if (userPermission == null || requiredPermission == null) {
-            return false;
-        }
-        
-        // 超级权限
-        if ("platform:*".equals(userPermission)) {
-            return true;
-        }
-        
-        // 精确匹配
-        if (userPermission.equals(requiredPermission)) {
-            return true;
-        }
-        
-        // 通配符匹配 (如 platform:tenant:* 包含 platform:tenant:read)
-        if (userPermission.endsWith(":*")) {
-            String prefix = userPermission.substring(0, userPermission.length() - 1);
-            return requiredPermission.startsWith(prefix);
-        }
-        
-        return false;
+        return com.wenx.v3secure.utils.PermissionUtils.hasPermission(userPermission, requiredPermission);
     }
-    
-    /**
-     * 判断是否为系统权限
-     * @param permission 权限代码
-     * @return 是否为系统权限
-     */
+
     public static boolean isSystemPermission(String permission) {
-        return permission != null && permission.startsWith("system:");
+        return com.wenx.v3secure.utils.PermissionUtils.belongsToNamespace(permission, "system");
     }
-    
-    /**
-     * 判断是否为平台权限
-     * @param permission 权限代码
-     * @return 是否为平台权限
-     */
+
     public static boolean isPlatformPermission(String permission) {
-        return permission != null && permission.startsWith("platform:");
+        return com.wenx.v3secure.utils.PermissionUtils.belongsToNamespace(permission, "platform");
     }
-    
-    /**
-     * 解析权限模块
-     * @param permission 权限代码
-     * @return 权限模块 (如: user, role, menu等)
-     */
+
     public static String parseModule(String permission) {
-        if (permission == null || !permission.contains(":")) {
-            return null;
-        }
-        
-        String[] parts = permission.split(":");
-        if (parts.length >= 2) {
-            return parts[1];
-        }
-        
-        return null;
+        return com.wenx.v3secure.utils.PermissionUtils.parseModule(permission);
     }
-    
-    /**
-     * 解析权限操作
-     * @param permission 权限代码
-     * @return 权限操作 (如: read, write, delete等)
-     */
+
     public static String parseAction(String permission) {
-        if (permission == null || !permission.contains(":")) {
-            return null;
-        }
-        
-        String[] parts = permission.split(":");
-        if (parts.length >= 3) {
-            return parts[2];
-        }
-        
-        return null;
+        return com.wenx.v3secure.utils.PermissionUtils.parseAction(permission);
     }
 
 }

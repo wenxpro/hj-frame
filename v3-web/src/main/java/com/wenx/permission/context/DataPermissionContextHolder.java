@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -60,6 +62,12 @@ public class DataPermissionContextHolder {
         
         // 部门及下级：可以查看本部门及下级部门的数据（已修复字段名）
         CONDITION_TEMPLATES.put("DEPT_AND_SUB", "department_id IN (#{deptIds})");
+
+        // 团队范围（H1）：只能查看本团队的数据（业务表需含 team_id 列）
+        CONDITION_TEMPLATES.put("TEAM_SCOPE", "team_id IN (#{teamIds})");
+
+        // 租户范围（P2）：只能查看本租户的数据（共享库 + tenant_id 隔离，业务表需含 tenant_id 列）
+        CONDITION_TEMPLATES.put("TENANT_SCOPE", "tenant_id = #{tenantId}");
         
         // 组织范围：只能查看本组织的数据（根据实际业务需求调整）
         CONDITION_TEMPLATES.put("ORG_SCOPE", "org_id = #{orgId}");
@@ -360,6 +368,19 @@ public class DataPermissionContextHolder {
                 // 获取用户所在部门及其子部门ID列表
                 return getDeptAndSubDeptIds();
 
+            case "tenantId": {
+                // P2：当前用户所属租户
+                Long tenantId = LoginUser.getTenantId();
+                return tenantId != null ? tenantId.toString() : null;
+            }
+
+            case "teamIds": {
+                // H1：用户所在团队 ID 列表（逗号分隔，用于 IN 条件）
+                List<Long> teamIds = LoginUser.getTeamIds();
+                return teamIds == null || teamIds.isEmpty() ? null
+                        : teamIds.stream().map(String::valueOf).collect(Collectors.joining(","));
+            }
+
             default:
                 log.warn("未知的占位符: {}", placeholder);
                 return null;
@@ -372,11 +393,13 @@ public class DataPermissionContextHolder {
      * @return 部门ID列表字符串，格式如：1,2,3
      */
     private static String getDeptAndSubDeptIds() {
-        Long deptId = LoginUser.getDepartmentId();
-        if (deptId == null) {
-            return null;
+        // 优先使用运行时计算的数据范围（部门 id 列表），兼容旧的单部门回退
+        List<Long> scopes = LoginUser.getDataScopeList();
+        if (scopes != null && !scopes.isEmpty()) {
+            return scopes.stream().map(String::valueOf).collect(Collectors.joining(","));
         }
-        return deptId.toString();
+        Long deptId = LoginUser.getDepartmentId();
+        return deptId != null ? deptId.toString() : null;
     }
     
     /**

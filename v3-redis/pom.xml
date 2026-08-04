@@ -34,11 +34,10 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
         
-        <!-- Redisson（可选） -->
+        <!-- Redisson（P2.3：CacheLockAspect 依赖，必须传递到消费者） -->
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson-spring-boot-starter</artifactId>
-            <optional>true</optional>
         </dependency>
     </dependencies>
 </project>

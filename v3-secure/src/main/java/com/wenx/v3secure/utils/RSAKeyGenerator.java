@@ -12,7 +12,7 @@ import java.security.KeyPair;
  * 
  * 使用方法：
  * 1. 运行 main 方法生成密钥对
- * 2. 将生成的 private_key.pem 和 public_key.pem 文件放到项目资源目录
+ * 2. 私钥通过环境变量 / Nacos 加密配置 / KMS 注入（*.pem 已加入 .gitignore，严禁提交仓库）
  * 3. 在配置文件中指定密钥文件路径
  * 
  * @author wenx

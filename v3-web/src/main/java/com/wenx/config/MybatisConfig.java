@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerIntercep
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.wenx.permission.plugin.DataPermissionInnerInterceptor;
+import com.wenx.permission.plugin.TenantInnerInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,8 @@ public class MybatisConfig {
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
 
+        // 租户隔离拦截器（P2：共享库 + tenant_id，需在数据权限之前，保证租户条件最优先注入）
+        interceptor.addInnerInterceptor(new TenantInnerInterceptor());
         // 数据权限拦截器（需要在分页拦截器之前）
         interceptor.addInnerInterceptor(new DataPermissionInnerInterceptor());
         // 分页插件 - 指定数据库类型为MySQL

@@ -61,6 +61,11 @@ public @interface DataPermission {
          * 部门及下级：可以查看本部门及下级部门的数据
          */
         DEPT_AND_SUB,
+
+        /**
+         * 团队范围：只能查看本团队的数据（业务表需含 team_id 列，H1）
+         */
+        TEAM_SCOPE,
         
         /**
          * 自定义条件：使用condition属性指定的条件

@@ -22,6 +22,12 @@
             <artifactId>v3-core</artifactId>
         </dependency>
 
+        <!-- hutool-crypto（IdempotentAspect 使用 DigestUtil） -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-crypto</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.wenx</groupId>
             <artifactId>v3-data</artifactId>
@@ -54,15 +60,14 @@
             <artifactId>spring-boot-starter-undertow</artifactId>
         </dependency>
 
-        <!-- API 文档支持 -->
-        <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-ui</artifactId>
-        </dependency>
-        
+        <!-- API 文档支持：springdoc 核心（knife4j-openapi3-ui 仅含 UI 与 swagger-annotations，不含 springdoc） -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-ui</artifactId>
         </dependency>
 
         <!-- Spring Cloud 依赖 -->
@@ -101,6 +106,13 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-openfeign-core</artifactId>
+        </dependency>
+
+        <!-- 测试（H2：数据权限占位符用例） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
 

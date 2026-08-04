@@ -5,9 +5,9 @@
 v3-frame
 ├── v3-core      # 核心组件 - 基础工具类、常量、异常处理、统一响应格式
 ├── v3-data      # 数据访问 - MyBatis Plus、数据源配置、事务管理
-├── v3-redis     # 缓存组件 - Redis操作、分布式锁实现
+├── v3-redis     # 缓存组件 - Redis操作、分布式锁（Redisson）
 ├── v3-secure    # 安全组件 - 用户认证、权限管理、安全切面
-├── v3-seata     # 分布式事务 - Seata集成和自动配置
+├── v3-log       # 日志组件 - request-id MDC、性能监控切面
 └── v3-web       # Web组件 - 统一配置、异常处理、基础Controller、消息总线
 ```
 

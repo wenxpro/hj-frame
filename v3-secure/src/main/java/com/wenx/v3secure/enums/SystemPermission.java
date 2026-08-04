@@ -45,6 +45,11 @@ public class SystemPermission {
     public static final String TEAM_ALL_CODE = "system:team:*";
     public static final String TEAM_MEMBER_MANAGE_CODE = "system:team:member:manage";
     public static final String TEAM_ROLE_MANAGE_CODE = "system:team:role:manage";
+
+    // 任务模块权限（工作线：团队数据权限第一个消费方）
+    public static final String TASK_READ_CODE = "system:task:read";
+    public static final String TASK_MANAGE_CODE = "system:task:manage";
+    public static final String TASK_ALL_CODE = "system:task:*";
     
     // 业务功能权限
     public static final String BUSINESS_READ_CODE = "system:business:read";
@@ -87,30 +92,9 @@ public class SystemPermission {
     }
     
     /**
-     * 检查权限是否匹配
-     * 支持通配符权限检查
+     * 检查权限是否匹配（委托给 PermissionUtils）
      */
     public static boolean hasPermission(String userPermission, String requiredPermission) {
-        if (userPermission == null || requiredPermission == null) {
-            return false;
-        }
-        
-        // 系统超级权限
-        if ("system:*".equals(userPermission)) {
-            return true;
-        }
-        
-        // 精确匹配
-        if (userPermission.equals(requiredPermission)) {
-            return true;
-        }
-        
-        // 通配符匹配 (如 sys:user:* 包含 sys:user:read)
-        if (userPermission.endsWith(":*")) {
-            String prefix = userPermission.substring(0, userPermission.length() - 1);
-            return requiredPermission.startsWith(prefix);
-        }
-        
-        return false;
+        return com.wenx.v3secure.utils.PermissionUtils.hasPermission(userPermission, requiredPermission);
     }
 }

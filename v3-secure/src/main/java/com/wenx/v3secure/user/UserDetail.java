@@ -34,8 +34,13 @@ public class UserDetail implements UserDetails {
     private String email;
     private String mobile;
     private Long departmentId;
+    /** 所属租户 ID（P2：多租户隔离，运行时经 sys_user 加载） */
+    private Long tenantId;
     private Integer status;
     private Integer superAdmin;
+
+    /** 用户所在团队 ID 集（H1：团队数据权限上下文，运行时经缓存服务加载） */
+    private List<Long> teamIds;
 
     /**
      * 数据权限范围
@@ -43,6 +48,9 @@ public class UserDetail implements UserDetails {
      * null：表示全部数据权限
      */
     private List<Long> dataScopeList;
+
+    /** 数据权限生效类型（ALL/DEPT/TENANT/BUSINESS/OWNER），由用户角色 data_scope 运行时计算 */
+    private String dataScopeType;
     /**
      * 帐户是否过期
      */

@@ -2,9 +2,11 @@ package com.wenx.handler;
 
 import com.wenx.consts.OperationConst;
 import com.wenx.v3core.error.BusinessException;
+import com.wenx.v3core.error.ErrorCode;
 import com.wenx.v3core.error.ServiceException;
 import com.wenx.v3core.consts.SortConstant;
 import com.wenx.v3core.response.R;
+import com.wenx.v3secure.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -44,78 +46,88 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     /**
-     * 业务异常处理
+     * 业务异常处理（D8：携带统一错误码）
      */
     @ResponseBody
     @ExceptionHandler(BusinessException.class)
     public R exceptionHandler(BusinessException e, HttpServletResponse response) {
-        log.warn("业务异常: {}", e.getMessage());
-        return R.failed(null,e.getMessage());
+        log.warn("业务异常: code={}, msg={}", e.getErrorCode().getCode(), e.getMessage());
+        return R.failed(e.getErrorCode(), e.getMessage());
     }
 
     /**
-     * 服务异常处理
+     * 服务异常处理（D8：归为系统错误码）
      */
     @ResponseBody
     @ExceptionHandler(ServiceException.class)
     public R exceptionHandler(ServiceException e, HttpServletResponse response) {
         log.warn("服务异常: {}", e.getMessage());
-        return R.failed(null,e.getMessage());
+        return R.failed(ErrorCode.SYSTEM_ERROR, e.getMessage());
     }
 
     /**
-     * 认证异常处理
+     * 认证异常处理（D8：AUTH 分区）
      */
     @ResponseBody
     @ExceptionHandler(AuthenticationException.class)
     public R exceptionHandler(AuthenticationException e, HttpServletResponse response) {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         if (e instanceof BadCredentialsException) {
-            return R.failed("用户名或密码错误");
+            return R.failed(ErrorCode.AUTH_BAD_CREDENTIALS);
         } else if (e instanceof InsufficientAuthenticationException) {
-            return R.failed("请先登录");
+            return R.failed(ErrorCode.AUTH_UNAUTHORIZED);
         }
-        return R.failed("认证失败: " + e.getMessage());
+        return R.failed(ErrorCode.AUTH_UNAUTHORIZED, "认证失败: " + e.getMessage());
     }
 
     /**
-     * 权限不足异常处理
+     * 权限不足异常处理（D8：PERMISSION 分区）
      */
     @ResponseBody
     @ExceptionHandler(AccessDeniedException.class)
     public R exceptionHandler(AccessDeniedException e, HttpServletResponse response) {
         response.setStatus(HttpStatus.FORBIDDEN.value());
-        return R.failed("权限不足，无法访问该资源");
+        return R.failed(ErrorCode.PERMISSION_DENIED);
     }
 
     /**
-     * 数据库操作异常处理
+     * 框架权限校验异常（SecurityAspect @RequiresPermissions/@RequiresRoles，HTTP 403）
+     */
+    @ResponseBody
+    @ExceptionHandler(UnauthorizedException.class)
+    public R exceptionHandler(UnauthorizedException e, HttpServletResponse response) {
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        return R.failed(ErrorCode.PERMISSION_DENIED, e.getMessage());
+    }
+
+    /**
+     * 数据库操作异常处理（D8：DUPLICATE/DATA_INTEGRITY/DB_ERROR）
      */
     @ResponseBody
     @ExceptionHandler(DataAccessException.class)
     public R exceptionHandler(DataAccessException e, HttpServletResponse response) {
         log.error("数据库操作异常:", e);
         if (e instanceof DuplicateKeyException) {
-            return R.failed("数据已存在，请勿重复添加");
+            return R.failed(ErrorCode.DUPLICATE_KEY);
         } else if (e instanceof DataIntegrityViolationException) {
-            return R.failed("数据完整性约束违反，请检查数据是否正确");
+            return R.failed(ErrorCode.DATA_INTEGRITY);
         }
-        return R.failed("数据操作失败");
+        return R.failed(ErrorCode.DB_ERROR);
     }
 
     /**
-     * 参数缺失异常处理
+     * 参数缺失异常处理（D8：PARAM 分区）
      */
     @ResponseBody
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public R exceptionHandler(MissingServletRequestParameterException e, HttpServletResponse response) {
         response.setStatus(HttpStatus.BAD_REQUEST.value());
         String msg = String.format("缺少必要参数: %s", e.getParameterName());
-        return R.failed(msg);
+        return R.failed(ErrorCode.PARAM_MISSING, msg);
     }
 
     /**
-     * 参数类型不匹配异常
+     * 参数类型不匹配异常（D8：PARAM_TYPE）
      */
     @ResponseBody
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -123,7 +135,7 @@ public class GlobalExceptionHandler {
         response.setStatus(HttpStatus.BAD_REQUEST.value());
         String msg = String.format("参数类型错误: %s 应该为 %s 类型", 
                 e.getName(), e.getRequiredType().getSimpleName());
-        return R.failed(msg);
+        return R.failed(ErrorCode.PARAM_TYPE, msg);
     }
 
     @ResponseBody
@@ -132,9 +144,9 @@ public class GlobalExceptionHandler {
         log.error("未声明的异常:", e);
         Throwable ex = e.getUndeclaredThrowable();
         if (ex != null && ex.getCause() != null) {
-            return R.failed(ex.getCause().getMessage());
+            return R.failed(ErrorCode.SYSTEM_ERROR, ex.getCause().getMessage());
         }
-        return R.failed(OperationConst.SYSTEM_ERROR);
+        return R.failed(ErrorCode.SYSTEM_ERROR, OperationConst.SYSTEM_ERROR);
     }
 
     @ResponseBody
@@ -144,7 +156,7 @@ public class GlobalExceptionHandler {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         String msg = String.format("不支持%s请求方法，请使用%s", 
                 e.getMethod(), String.join("/", e.getSupportedMethods()));
-        return R.failed(msg);
+        return R.failed(ErrorCode.PARAM_ERROR, msg);
     }
 
     @ResponseBody
@@ -153,7 +165,7 @@ public class GlobalExceptionHandler {
         response.setStatus(HttpStatus.BAD_REQUEST.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         String msg = String.format("%s，异常原因：%s", OperationConst.ERROR_PARAM, e.getLocalizedMessage());
-        return R.failed(msg);
+        return R.failed(ErrorCode.PARAM_TYPE, msg);
     }
 
     @ResponseBody
@@ -161,7 +173,7 @@ public class GlobalExceptionHandler {
     public R exceptionHandler(HttpMessageNotReadableException e, HttpServletResponse response) {
         response.setStatus(HttpStatus.BAD_REQUEST.value());
         log.warn("JSON解析异常: {}", e.getMessage());
-        return R.failed("请求数据格式错误，请检查JSON格式是否正确");
+        return R.failed(ErrorCode.PARAM_FORMAT);
     }
 
     @ResponseBody
@@ -171,7 +183,7 @@ public class GlobalExceptionHandler {
         String message = e.getBindingResult().getAllErrors().stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining("; "));
-        return R.failed("参数验证失败: " + message);
+        return R.failed(ErrorCode.PARAM_VALIDATION, "参数验证失败: " + message);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -180,28 +192,28 @@ public class GlobalExceptionHandler {
         String message = e.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining("; "));
-        return R.failed("参数约束验证失败: " + message);
+        return R.failed(ErrorCode.PARAM_VALIDATION, "参数约束验证失败: " + message);
     }
 
     /**
-     * 空指针异常处理
+     * 空指针异常处理（D8：SYSTEM_ERROR）
      */
     @ResponseBody
     @ExceptionHandler(NullPointerException.class)
     public R exceptionHandler(NullPointerException e, HttpServletResponse response) {
         log.error("空指针异常:", e);
         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        return R.failed("系统内部错误，请稍后再试");
+        return R.failed(ErrorCode.SYSTEM_ERROR);
     }
 
     /**
-     * 栈溢出异常处理
+     * 栈溢出异常处理（D8：SYSTEM_ERROR）
      */
     @ResponseBody
     @ExceptionHandler(StackOverflowError.class)
     public R exceptionHandler(StackOverflowError e, HttpServletResponse response) {
         log.error("栈溢出错误:", e);
         response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        return R.failed("系统处理异常，请联系管理员");
+        return R.failed(ErrorCode.SYSTEM_ERROR, "系统处理异常，请联系管理员");
     }
 }

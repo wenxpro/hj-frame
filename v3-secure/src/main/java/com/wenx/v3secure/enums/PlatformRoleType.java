@@ -15,7 +15,8 @@ public enum PlatformRoleType {
             Arrays.asList(PlatformPermission.PLATFORM_ALL_CODE)),
     
     PLATFORM_ADMIN("platform_admin", "平台管理员", "负责租户和用户管理",
-            Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),
+            Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE,
+                    PlatformPermission.PLATFORM_ROLE_ALL_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),
     
     PLATFORM_SUPPORT("platform_support", "平台支持", "负责租户支持",
             Arrays.asList(PlatformPermission.TENANT_READ_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),
@@ -52,11 +53,14 @@ public enum PlatformRoleType {
     }
     
     /**
-     * 根据角色代码获取角色类型
+     * 根据角色代码获取角色类型（大小写不敏感：DB role_code 为大写枚举，如 PLATFORM_ADMIN）
      */
     public static PlatformRoleType fromCode(String code) {
+        if (code == null) {
+            return null;
+        }
         for (PlatformRoleType roleType : values()) {
-            if (roleType.getCode().equals(code)) {
+            if (roleType.getCode().equalsIgnoreCase(code)) {
                 return roleType;
             }
         }

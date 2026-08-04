@@ -145,7 +145,12 @@ public class DataMaskAspect {
         Field[] fields = getAllFields(clazz);
         
         for (Field field : fields) {
-            field.setAccessible(true);
+            try {
+                field.setAccessible(true);
+            } catch (RuntimeException e) {
+                // JDK 模块限制下无法访问的字段（如 java.util.Date 内部），跳过
+                continue;
+            }
             
             DataMask dataMask = field.getAnnotation(DataMask.class);
             if (dataMask != null && dataMask.enabled()) {
@@ -228,7 +233,8 @@ public class DataMaskAspect {
             if (packageName != null && 
                 (packageName.startsWith("java.lang") ||
                  packageName.startsWith("java.time") ||
-                 packageName.startsWith("java.math"))) {
+                 packageName.startsWith("java.math") ||
+                 packageName.startsWith("java.util"))) {
                 return true;
             }
         }

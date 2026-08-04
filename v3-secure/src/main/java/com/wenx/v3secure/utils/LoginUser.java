@@ -58,9 +58,26 @@ public class LoginUser {
      * 获取当前用户部门ID
      */
     public static Long getDepartmentId() {
-        UserDetail user = getUser();
-        return user != null ? user.getDepartmentId() : null;
+        UserDetail userDetail = getUser();
+        return userDetail != null ? userDetail.getDepartmentId() : null;
     }
+
+    /**
+     * 获取当前用户所属租户 ID（P2：多租户隔离）
+     */
+    public static Long getTenantId() {
+        UserDetail userDetail = getUser();
+        return userDetail != null ? userDetail.getTenantId() : null;
+    }
+
+    /**
+     * 获取当前用户所在团队 ID 列表（H1：团队数据权限上下文）
+     */
+    public static List<Long> getTeamIds() {
+        UserDetail userDetail = getUser();
+        return userDetail != null ? userDetail.getTeamIds() : null;
+    }
+
     
     /**
      * 判断当前用户是否为超级管理员
@@ -77,17 +94,12 @@ public class LoginUser {
             return true;
         }
         
-        // 方式2：检查用户名（数据库和缓存中的admin用户确实是超管）
-        if ("admin".equals(user.getUsername()) || "superadmin".equals(user.getUsername())) {
-            return true;
-        }
-        
-        // 方式3：检查用户ID（超级管理员通常是ID为1的用户）
+        // 方式2：超级管理员 ID（方式1 的 superAdmin 字段缺失时的兜底）
         if (user.getId() != null && user.getId().equals(CommonConstants.SUPER_ADMIN_ID)) {
             return true;
         }
         
-        // 方式4：检查角色权限（拥有超级管理员角色）
+        // 方式3：检查角色权限（拥有超级管理员角色）
         Set<String> authorities = user.getAuthoritySet();
         if (authorities != null) {
             if (authorities.contains("ROLE_SUPER_ADMIN") || 
@@ -100,6 +112,14 @@ public class LoginUser {
         return false;
     }
     
+    /**
+     * 判断当前用户是否为平台用户（E1：平台命名空间接口的准入条件）
+     */
+    public static boolean isPlatformUser() {
+        UserDetail userDetail = getUser();
+        return userDetail != null && userDetail.isPlatformUser();
+    }
+
     /**
      * 判断当前用户是否为平台管理员
      * 支持通配符权限检查，如platform:*、platform:tenant:*等
@@ -278,6 +298,14 @@ public class LoginUser {
                 && !(authentication instanceof AnonymousAuthenticationToken);
     }
     
+    /**
+     * 获取当前用户数据权限生效类型（ALL/DEPT/TENANT/BUSINESS/OWNER）
+     */
+    public static String getDataScopeType() {
+        UserDetail user = getUser();
+        return user != null ? user.getDataScopeType() : null;
+    }
+
     /**
      * 获取当前用户数据权限范围
      */

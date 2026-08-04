@@ -4,6 +4,8 @@ import com.wenx.anno.DataPermission;
 import com.wenx.permission.context.DataPermissionContextHolder;
 import com.wenx.permission.context.PermissionConditionInfo;
 import com.wenx.v3secure.utils.LoginUser;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 数据权限AOP切面 - 重构版
@@ -30,6 +33,16 @@ import java.util.List;
 @Order(100) // 确保在事务切面之前执行
 @Slf4j
 public class DataPermissionAspect {
+
+    /** 数据权限校验耗时（A2/D5 业务指标） */
+    private final Timer permissionCheckTimer;
+
+    public DataPermissionAspect(MeterRegistry meterRegistry) {
+        this.permissionCheckTimer = Timer.builder("permission.check.duration")
+                .description("数据权限校验耗时")
+                .publishPercentileHistogram(true)
+                .register(meterRegistry);
+    }
     
     /**
      * 环绕通知：处理@DataPermission注解
@@ -62,8 +75,10 @@ public class DataPermissionAspect {
         
         try {
             // 构建 SQL 条件存入上下文，由 MyBatis 拦截器注入 WHERE
+            Timer.Sample sample = Timer.start();
             performPermissionVerification(dataPermission);
             DataPermissionContextHolder.setPermissionVerified(true);
+            sample.stop(permissionCheckTimer);
             log.debug("执行方法 {}.{} 的数据权限控制，已验证的条件数量: {}",
                      method.getDeclaringClass().getSimpleName(),
                      method.getName(),

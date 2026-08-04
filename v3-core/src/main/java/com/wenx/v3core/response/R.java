@@ -61,6 +61,16 @@ public class R implements Serializable {
         return restResult(data, aec.getCode(), msg);
     }
 
+    /** D8：按统一错误码返回失败结果 */
+    public static R failed(IErrorCode errorCode) {
+        return restResult(null, errorCode);
+    }
+
+    /** D8：按统一错误码 + 自定义消息返回失败结果 */
+    public static R failed(IErrorCode errorCode, String msg) {
+        return restResult(null, errorCode.getCode(), msg != null ? msg : errorCode.getMsg());
+    }
+
     public static R ok(Object data) {
         ApiErrorCode aec = ApiErrorCode.SUCCESS;
         if (data instanceof Boolean && Boolean.FALSE.equals(data)) {

@@ -2,6 +2,7 @@ package com.wenx.v3secure.aspect;
 
 import com.wenx.v3secure.annotation.RequiresPermissions;
 import com.wenx.v3secure.annotation.RequiresRoles;
+import com.wenx.v3secure.enums.PlatformPermission;
 import com.wenx.v3secure.exception.UnauthorizedException;
 import com.wenx.v3secure.utils.LoginUser;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -49,16 +50,24 @@ public class SecurityAspect {
         if (!LoginUser.isAuthenticated()) {
             throw new UnauthorizedException("用户未登录");
         }
-        
-        // 超级管理员直接放行
-        if (LoginUser.isSuperAdmin()) {
-            return joinPoint.proceed();
-        }
-        
+
         // 获取方法上的权限注解
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
         RequiresPermissions annotation = method.getAnnotation(RequiresPermissions.class);
+
+        // 平台命名空间接口（全 platform: 权限码）准入：平台用户或系统超管（超管双区可见）
+        if (annotation != null && annotation.value().length > 0
+                && Arrays.stream(annotation.value()).allMatch(PlatformPermission::isPlatformPermission)
+                && !LoginUser.isPlatformUser()
+                && !LoginUser.isSuperAdmin()) {
+            throw new UnauthorizedException("仅平台用户可访问该资源");
+        }
+
+        // 超级管理员直接放行
+        if (LoginUser.isSuperAdmin()) {
+            return joinPoint.proceed();
+        }
         
         if (annotation != null) {
             String[] requiredPermissions = annotation.value();
