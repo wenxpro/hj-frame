@@ -10,9 +10,9 @@
         <relativePath>hj-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>v3-frame</artifactId>
+    <artifactId>hj-frame</artifactId>
     <packaging>pom</packaging>
-    <name>v3-frame</name>
+    <name>hj-frame</name>
     <description>V3 框架核心组件</description>
 
     <modules>
