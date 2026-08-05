@@ -16,7 +16,8 @@ public enum PlatformRoleType {
     
     PLATFORM_ADMIN("platform_admin", "平台管理员", "负责租户和用户管理",
             Arrays.asList(PlatformPermission.TENANT_ALL_CODE, PlatformPermission.PLATFORM_USER_ALL_CODE,
-                    PlatformPermission.PLATFORM_ROLE_ALL_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),
+                    PlatformPermission.PLATFORM_ROLE_ALL_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE,
+                    PlatformPermission.PLAN_ALL_CODE)),
     
     PLATFORM_SUPPORT("platform_support", "平台支持", "负责租户支持",
             Arrays.asList(PlatformPermission.TENANT_READ_CODE, PlatformPermission.PLATFORM_MENU_READ_CODE)),

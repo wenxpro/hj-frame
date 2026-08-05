@@ -2,6 +2,7 @@ package com.wenx.v3core.aspect;
 
 import com.wenx.v3core.anoo.DataMask;
 import com.wenx.v3core.anoo.DataMaskProcessor;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author wenx
  * @version 1.0
  */
+@Slf4j
 @Aspect
 @Component
 @Order(100)
@@ -57,19 +59,22 @@ public class DataMaskAspect {
         }
         
         // 开始数据脱敏处理
-        
         // 清理ThreadLocal，确保每次请求都是干净的状态
         PROCESSING_OBJECTS.get().clear();
         
-        // 执行数据脱敏
-        Object maskedResult = processMaskData(result);
-        
-        // 数据脱敏处理完成
-        
-        // 清理ThreadLocal，防止内存泄漏
-        PROCESSING_OBJECTS.remove();
-        
-        return maskedResult;
+        try {
+            // 执行数据脱敏
+            return processMaskData(result);
+        } catch (Exception e) {
+            // review P1-5：脱敏异常不冒泡 500（此前反射异常直接打崩接口），记录并返回原结果
+            log.warn("数据脱敏处理异常，返回原始数据: {}.{}",
+                    joinPoint.getTarget().getClass().getSimpleName(),
+                    joinPoint.getSignature().getName(), e);
+            return result;
+        } finally {
+            // 清理ThreadLocal，防止内存泄漏（此前异常路径不清理）
+            PROCESSING_OBJECTS.remove();
+        }
     }
 
     /**

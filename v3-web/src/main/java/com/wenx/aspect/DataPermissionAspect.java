@@ -138,15 +138,22 @@ public class DataPermissionAspect {
     
     /**
      * 获取权限类型对应的条件模板
+     * Z-Review H1：租户管理员/无部门租户用户（departmentId 为空但有租户上下文）的
+     * DEPT_SCOPE 退化为 TENANT_SCOPE（租户内全量可见，租户隔离由租户拦截器兜底），
+     * 避免用户列表等页面因 department_id = NULL 恒空。
      */
     private String getConditionTemplate(DataPermission.PermissionType type) {
         switch (type) {
             case USER_SCOPE:
                 return DataPermissionContextHolder.getConditionTemplate("USER_SCOPE");
             case DEPT_SCOPE:
-                return DataPermissionContextHolder.getConditionTemplate("DEPT_SCOPE");
             case DEPT_AND_SUB:
-                return DataPermissionContextHolder.getConditionTemplate("DEPT_AND_SUB");
+                // 无部门但有租户上下文 → 退化到租户范围（租户管理员场景）
+                if (LoginUser.getDepartmentId() == null && LoginUser.getTenantId() != null) {
+                    return DataPermissionContextHolder.getConditionTemplate("TENANT_SCOPE");
+                }
+                return DataPermissionContextHolder.getConditionTemplate(
+                        type == DataPermission.PermissionType.DEPT_SCOPE ? "DEPT_SCOPE" : "DEPT_AND_SUB");
             default:
                 return null;
         }

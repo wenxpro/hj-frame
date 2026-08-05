@@ -15,6 +15,8 @@ public class AuditLogEntry {
 
     private Long operatorId;
     private String operatorName;
+    /** 所属租户（P0-2 review 修复：主线程构建时捕获，sink 异步落库用） */
+    private Long tenantId;
     private String action;
     private String resourceType;
     private String resourceId;

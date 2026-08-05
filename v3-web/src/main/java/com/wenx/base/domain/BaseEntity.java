@@ -49,11 +49,11 @@ public class BaseEntity implements Serializable {
     private Integer version;
 
     /**
-     * 逻辑删除
+     * 逻辑删除（Z4：删除时置为行 id，避免 (code, deleted) 唯一索引二次删除冲突）
      */
     @TableField(value = "deleted", fill = FieldFill.INSERT)
-    @TableLogic
-    private Integer deleted;
+    @TableLogic(value = "0", delval = "id")
+    private Long deleted;
 
 
 }

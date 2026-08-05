@@ -39,9 +39,9 @@ public class MybatisPlusMetaObjectHandler implements MetaObjectHandler {
                 this.strictInsertFill(metaObject, "version", Integer.class, 1);
             }
             
-            // 删除标识
+            // 删除标识（Z4：Long 型，删除时置为行 id，见 BaseEntity）
             if (metaObject.hasSetter("deleted")) {
-                this.strictInsertFill(metaObject, "deleted", Integer.class, 0);
+                this.strictInsertFill(metaObject, "deleted", Long.class, 0L);
             }
             
             // 创建者和修改者

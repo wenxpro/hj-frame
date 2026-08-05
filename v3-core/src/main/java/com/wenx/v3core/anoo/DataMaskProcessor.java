@@ -72,7 +72,8 @@ public class DataMaskProcessor {
      */
     private static String maskPhone(String phone, DataMask annotation) {
         if (!PHONE_PATTERN.matcher(phone).matches()) {
-            return phone;
+            // review P2：格式不匹配（带空格/短号等非标准但敏感值）也部分掩码，不透传原文
+            return partialMask(phone, 3, 4, annotation.maskChar());
         }
         
         int prefixKeep = Math.min(annotation.prefixKeep(), 3);
@@ -86,7 +87,7 @@ public class DataMaskProcessor {
      */
     private static String maskIdCard(String idCard, DataMask annotation) {
         if (!ID_CARD_PATTERN.matcher(idCard).matches()) {
-            return idCard;
+            return partialMask(idCard, 4, 4, annotation.maskChar());
         }
         
         int prefixKeep = Math.min(annotation.prefixKeep(), 6);
@@ -100,7 +101,12 @@ public class DataMaskProcessor {
      */
     private static String maskEmail(String email, DataMask annotation) {
         if (!EMAIL_PATTERN.matcher(email).matches()) {
-            return email;
+            int atIndex = email.indexOf('@');
+            if (atIndex > 1) {
+                // 含 @ 的近似邮箱：保前3 + 掩码到 @ 前
+                return email.substring(0, 3) + String.valueOf(annotation.maskChar()).repeat(Math.max(1, atIndex - 3)) + email.substring(atIndex);
+            }
+            return partialMask(email, 2, 0, annotation.maskChar());
         }
         
         int atIndex = email.indexOf('@');
@@ -188,7 +194,7 @@ public class DataMaskProcessor {
      */
     private static String maskIpAddress(String ip, DataMask annotation) {
         if (!IP_PATTERN.matcher(ip).matches()) {
-            return ip;
+            return partialMask(ip, 4, 4, annotation.maskChar());
         }
         
         String[] parts = ip.split("\\.");
@@ -283,5 +289,23 @@ public class DataMaskProcessor {
             sb.append(str);
         }
         return sb.toString();
+    }
+
+    /**
+     * 部分掩码（review P2：格式不匹配时保前缀/后缀，中间用掩码字符，避免非标准但敏感值明文透出）
+     */
+    private static String partialMask(String value, int prefixKeep, int suffixKeep, char maskChar) {
+        if (value == null || value.isEmpty()) {
+            return value;
+        }
+        int prefix = Math.min(prefixKeep, value.length());
+        int suffix = Math.min(suffixKeep, Math.max(0, value.length() - prefix));
+        if (prefix + suffix >= value.length()) {
+            // 全掩码（太短没有可保留空间）
+            return String.valueOf(maskChar).repeat(value.length());
+        }
+        return value.substring(0, prefix)
+                + String.valueOf(maskChar).repeat(value.length() - prefix - suffix)
+                + value.substring(value.length() - suffix);
     }
 }

@@ -74,6 +74,8 @@ public class AuditLogAspect {
         AuditLogEntry.AuditLogEntryBuilder builder = AuditLogEntry.builder()
                 .operatorId(operator != null ? operator.getId() : null)
                 .operatorName(operator != null ? operator.getUsername() : null)
+                // P0-2 review 修复：主线程捕获租户（sink 为 @Async 异步线程，SecurityContext 已丢失）
+                .tenantId(operator != null ? operator.getTenantId() : null)
                 .action(auditLog.action())
                 .resourceType(auditLog.resourceType())
                 .executeTime(executeTime)

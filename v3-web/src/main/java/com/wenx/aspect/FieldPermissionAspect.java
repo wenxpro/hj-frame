@@ -85,6 +85,18 @@ public class FieldPermissionAspect {
             return null;
         }
         
+        // 处理分页对象（Y 遗留：此前 IPage 走"单个对象"分支——Page 无 @FieldPermission 字段
+        // 直接返回，records 内的字段权限完全未处理；DataMaskAspect 靠递归能覆盖，此处必须对齐）
+        if (data instanceof com.baomidou.mybatisplus.core.metadata.IPage) {
+            com.baomidou.mybatisplus.core.metadata.IPage<Object> page =
+                    (com.baomidou.mybatisplus.core.metadata.IPage<Object>) data;
+            List<Object> records = page.getRecords();
+            if (records != null && !records.isEmpty()) {
+                page.setRecords(fieldPermissionService.processFieldPermissions(records));
+            }
+            return page;
+        }
+        
         // 处理集合类型
         if (data instanceof Collection) {
             Collection<Object> collection = (Collection<Object>) data;

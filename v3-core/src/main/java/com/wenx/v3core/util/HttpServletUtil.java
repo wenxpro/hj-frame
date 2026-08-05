@@ -66,6 +66,8 @@ public class HttpServletUtil {
 
     /**
      * 获取客户端IP
+     * 安全收尾（Y 遗留 XFF 伪造）：XFF 由网关规范化重写（AuthenticationFilter.normalizeXff），
+     * 此处取首个 IP 段，避免逗号串整串返回（如 "1.2.3.4, 5.6.7.8" 返回整串导致限流/审计错乱）
      */
     public static String getClientIp(HttpServletRequest request) {
         if (request == null) return "unknown";
@@ -76,6 +78,10 @@ public class HttpServletUtil {
         }
         if (StrUtil.isBlank(ip) || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
+        }
+        // 取首个 IP 段（兼容 XFF 逗号链）
+        if (StrUtil.isNotBlank(ip) && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
         }
         return ip;
     }

@@ -56,9 +56,11 @@ public class SecurityAspect {
         Method method = signature.getMethod();
         RequiresPermissions annotation = method.getAnnotation(RequiresPermissions.class);
 
-        // 平台命名空间接口（全 platform: 权限码）准入：平台用户或系统超管（超管双区可见）
+        // 平台命名空间接口（含任一 platform: 权限码）准入：平台用户或系统超管（超管双区可见）
+        // Z12：allMatch → anyMatch——混合注解（系统+平台权限码并存）此前绕过平台准入检查，
+        // 租户用户持有系统权限码即可触达平台端点；anyMatch 后仅平台用户/超管可过。
         if (annotation != null && annotation.value().length > 0
-                && Arrays.stream(annotation.value()).allMatch(PlatformPermission::isPlatformPermission)
+                && Arrays.stream(annotation.value()).anyMatch(PlatformPermission::isPlatformPermission)
                 && !LoginUser.isPlatformUser()
                 && !LoginUser.isSuperAdmin()) {
             throw new UnauthorizedException("仅平台用户可访问该资源");

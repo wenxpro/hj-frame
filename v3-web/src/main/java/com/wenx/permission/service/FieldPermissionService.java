@@ -23,10 +23,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FieldPermissionService {
     
     /**
-     * 字段权限缓存
-     * key: className.fieldName, value: FieldPermissionInfo
+     * 类级注解缓存（review P2：避免每请求对响应类型全层级反射 + 双重读注解）
+     * key: 类名, value: 字段名 → 注解
      */
-    private final Map<String, FieldPermissionInfo> permissionCache = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, FieldPermission>> classAnnotationCache = new ConcurrentHashMap<>();
     
     /**
      * 批量验证对象的字段权限
@@ -39,15 +39,8 @@ public class FieldPermissionService {
             return objects;
         }
         
-        Class<?> objectClass = objects.get(0).getClass();
-        Map<String, FieldPermissionInfo> classPermissions = getClassFieldPermissions(objectClass);
-        
-        if (classPermissions.isEmpty()) {
-            return objects; // 没有字段权限注解，直接返回
-        }
-        
-        // 为每个对象处理字段权限
-        objects.forEach(obj -> processObjectFieldPermissions(obj, classPermissions));
+        // review P2：按元素实际类分派（异构列表不再只处理首元素类型）
+        objects.forEach(obj -> processFieldPermissions(obj));
         
         return objects;
     }
@@ -64,89 +57,57 @@ public class FieldPermissionService {
         }
         
         Class<?> objectClass = object.getClass();
-        Map<String, FieldPermissionInfo> classPermissions = getClassFieldPermissions(objectClass);
+        Map<String, FieldPermission> classPermissions = getClassFieldPermissions(objectClass);
         
         if (classPermissions.isEmpty()) {
             return object; // 没有字段权限注解，直接返回
         }
         
-        processObjectFieldPermissions(object, classPermissions);
+        classPermissions.forEach((fieldName, annotation) -> {
+            try {
+                FieldPermissionContextHolder.FieldPermissionResult result =
+                        FieldPermissionContextHolder.verifyFieldAccess(objectClass, fieldName, object);
+                if (!result.isAllowed()) {
+                    removeUnauthorizedField(object, fieldName);
+                }
+            } catch (Exception e) {
+                log.warn("处理字段权限失败: {}.{}", objectClass.getSimpleName(), fieldName, e);
+            }
+        });
         return object;
     }
     
     /**
-     * 获取类的字段权限信息
+     * 获取类的字段权限注解（类级缓存，避免每请求反射）
      */
-    private Map<String, FieldPermissionInfo> getClassFieldPermissions(Class<?> clazz) {
-        String className = clazz.getName();
-        Map<String, FieldPermissionInfo> classPermissions = new HashMap<>();
-        
-        Field[] fields = getAllFields(clazz);
-        for (Field field : fields) {
-            FieldPermission annotation = field.getAnnotation(FieldPermission.class);
-            if (annotation != null && annotation.enabled()) {
-                String cacheKey = className + "." + field.getName();
-                
-                FieldPermissionInfo permissionInfo = permissionCache.computeIfAbsent(cacheKey, 
-                    key -> new FieldPermissionInfo(field.getName(), className, annotation));
-                
-                classPermissions.put(field.getName(), permissionInfo);
+    private Map<String, FieldPermission> getClassFieldPermissions(Class<?> clazz) {
+        return classAnnotationCache.computeIfAbsent(clazz.getName(), key -> {
+            Map<String, FieldPermission> permissions = new HashMap<>();
+            for (Field field : getAllFields(clazz)) {
+                FieldPermission annotation = field.getAnnotation(FieldPermission.class);
+                if (annotation != null && annotation.enabled()) {
+                    permissions.put(field.getName(), annotation);
+                }
             }
-        }
-        
-        return classPermissions;
-    }
-    
-    /**
-     * 处理单个对象的字段权限
-     */
-    private void processObjectFieldPermissions(Object object, Map<String, FieldPermissionInfo> permissions) {
-        permissions.forEach((fieldName, permissionInfo) -> {
-            try {
-                processFieldPermission(object, fieldName, permissionInfo);
-            } catch (Exception e) {
-                log.warn("处理字段权限失败: {}.{}", object.getClass().getSimpleName(), fieldName, e);
-            }
+            return permissions;
         });
     }
     
     /**
-     * 处理单个字段的权限
+     * 移除无权限访问的字段（设置为null；脱敏由 DataMaskAspect 负责）
      */
-    private void processFieldPermission(Object object, String fieldName, FieldPermissionInfo permissionInfo) 
-            throws IllegalAccessException {
-        
-        // 验证字段权限
-        FieldPermissionContextHolder.FieldPermissionResult result = 
-                FieldPermissionContextHolder.verifyFieldAccess(
-                    object.getClass(), fieldName, object);
-        
-        if (!result.isAllowed()) {
-            // 移除无权限访问的字段（设置为null）
-            // 脱敏处理由DataMaskAspect切面负责
-            removeUnauthorizedField(object, fieldName);
-            
-            log.debug("字段权限控制生效: {}.{} -> 已移除", 
-                object.getClass().getSimpleName(), fieldName);
-        }
-    }
-    
-    /**
-     * 移除无权限访问的字段
-     */
-    private void removeUnauthorizedField(Object object, String fieldName) 
-            throws IllegalAccessException {
-        
+    private void removeUnauthorizedField(Object object, String fieldName) {
         Field field = getField(object.getClass(), fieldName);
         if (field == null) {
             return;
         }
-        
-        field.setAccessible(true);
-        field.set(object, null);
+        try {
+            field.setAccessible(true);
+            field.set(object, null);
+        } catch (IllegalAccessException e) {
+            log.warn("字段置空失败: {}.{}", object.getClass().getSimpleName(), fieldName, e);
+        }
     }
-    
-
     
     /**
      * 获取字段（支持继承）
@@ -171,13 +132,10 @@ public class FieldPermissionService {
     private Field[] getAllFields(Class<?> clazz) {
         List<Field> fields = new ArrayList<>();
         Class<?> currentClass = clazz;
-        
         while (currentClass != null) {
-            Field[] declaredFields = currentClass.getDeclaredFields();
-            fields.addAll(Arrays.asList(declaredFields));
+            fields.addAll(Arrays.asList(currentClass.getDeclaredFields()));
             currentClass = currentClass.getSuperclass();
         }
-        
         return fields.toArray(new Field[0]);
     }
     
@@ -185,7 +143,7 @@ public class FieldPermissionService {
      * 清空字段权限缓存
      */
     public void clearPermissionCache() {
-        permissionCache.clear();
+        classAnnotationCache.clear();
         log.info("字段权限缓存已清空");
     }
     
@@ -193,26 +151,6 @@ public class FieldPermissionService {
      * 获取缓存大小
      */
     public int getCacheSize() {
-        return permissionCache.size();
-    }
-    
-    /**
-     * 字段权限信息
-     */
-    public static class FieldPermissionInfo {
-        private final String fieldName;
-        private final String className;
-        private final FieldPermission annotation;
-        
-        public FieldPermissionInfo(String fieldName, String className, FieldPermission annotation) {
-            this.fieldName = fieldName;
-            this.className = className;
-            this.annotation = annotation;
-        }
-        
-        // Getters
-        public String getFieldName() { return fieldName; }
-        public String getClassName() { return className; }
-        public FieldPermission getAnnotation() { return annotation; }
+        return classAnnotationCache.size();
     }
 }

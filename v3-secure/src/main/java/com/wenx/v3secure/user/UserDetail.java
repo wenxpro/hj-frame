@@ -69,8 +69,10 @@ public class UserDetail implements UserDetails {
     private boolean isEnabled = true;
     /**
      * 拥有权限集合
+     * 类型用 List（允许空 ArrayList）：授权对象序列化进 oauth2_authorization 表时，
+     * Security Jackson allowlist 仅允许 ArrayList 等，Set.of() 的 ImmutableCollections$SetN 反序列化会失败
      */
-    private Set<String> authoritySet;
+    private List<String> authoritySet;
     
     /**
      * 是否为平台用户
@@ -81,6 +83,10 @@ public class UserDetail implements UserDetails {
     @Override
     @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // review P1-6：裸 new UserDetail()（authoritySet 为 null）时避免 NPE
+        if (authoritySet == null) {
+            return java.util.Collections.emptyList();
+        }
         return authoritySet.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
     }
 

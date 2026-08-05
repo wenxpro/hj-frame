@@ -100,7 +100,7 @@ public class LoginUser {
         }
         
         // 方式3：检查角色权限（拥有超级管理员角色）
-        Set<String> authorities = user.getAuthoritySet();
+        java.util.List<String> authorities = user.getAuthoritySet();
         if (authorities != null) {
             if (authorities.contains("ROLE_SUPER_ADMIN") || 
                 authorities.contains("ROLE_super_admin") ||
@@ -258,7 +258,7 @@ public class LoginUser {
     public static Set<String> getAuthorities() {
         UserDetail user = getUser();
         return user != null && user.getAuthoritySet() != null 
-                ? user.getAuthoritySet() 
+                ? new java.util.HashSet<>(user.getAuthoritySet()) 
                 : Collections.emptySet();
     }
     

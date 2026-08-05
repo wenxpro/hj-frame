@@ -12,7 +12,10 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,12 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FieldPermissionContextHolder {
     
     /**
-     * 字段权限信息缓存
-     * key: 类名.字段名, value: 字段权限信息
-     */
-    private static final Map<String, FieldPermissionInfo> FIELD_PERMISSION_CACHE = new ConcurrentHashMap<>();
-
-    /**
      * SpEL 表达式解析器（线程安全，全局复用）
      */
     private static final ExpressionParser SPEL_PARSER = new SpelExpressionParser();
@@ -42,32 +39,6 @@ public class FieldPermissionContextHolder {
      * key: 表达式字符串, value: 已编译的 Expression
      */
     private static final Map<String, Expression> EXPRESSION_CACHE = new ConcurrentHashMap<>();
-    
-    /**
-     * 线程本地的字段访问控制上下文
-     */
-    private static final ThreadLocal<FieldAccessContext> FIELD_ACCESS_CONTEXT = new ThreadLocal<>();
-    
-    /**
-     * 设置字段访问上下文
-     */
-    public static void setFieldAccessContext(FieldAccessContext context) {
-        FIELD_ACCESS_CONTEXT.set(context);
-    }
-    
-    /**
-     * 获取字段访问上下文
-     */
-    public static FieldAccessContext getFieldAccessContext() {
-        return FIELD_ACCESS_CONTEXT.get();
-    }
-    
-    /**
-     * 清理字段访问上下文
-     */
-    public static void clearFieldAccessContext() {
-        FIELD_ACCESS_CONTEXT.remove();
-    }
     
     /**
      * 验证字段访问权限
@@ -113,8 +84,12 @@ public class FieldPermissionContextHolder {
         }
         
         if (level == FieldPermission.AccessLevel.CONFIDENTIAL) {
-            // 机密级别只有超级管理员才能访问（已在上面检查过）
-            return FieldPermissionResult.deny();
+            // review P2-9：机密级别在权限码/角色检查之后才拒绝——
+            // 声明了 value()（如 permission:read）的机密字段应先按权限码判定，而非一刀切仅超管
+            // （无 value/roles 的机密字段到此仍会被下方流程放行，故此处兜底：仅超管可访问）
+            if (annotation.value().length == 0 && annotation.roles().length == 0) {
+                return FieldPermissionResult.deny();
+            }
         }
         
         // 检查权限编码
@@ -270,52 +245,4 @@ public class FieldPermissionContextHolder {
 
     }
     
-    /**
-     * 字段访问上下文
-     */
-    public static class FieldAccessContext {
-        private final Set<String> allowedFields;
-        private final Set<String> deniedFields;
-
-        public FieldAccessContext() {
-            this.allowedFields = new HashSet<>();
-            this.deniedFields = new HashSet<>();
-        }
-        
-        public void allowField(String fieldName) {
-            allowedFields.add(fieldName);
-            deniedFields.remove(fieldName);
-        }
-        
-        public void denyField(String fieldName) {
-            deniedFields.add(fieldName);
-            allowedFields.remove(fieldName);
-
-        }
-        
-        public boolean isFieldAllowed(String fieldName) {
-            return allowedFields.contains(fieldName);
-        }
-        
-        public boolean isFieldDenied(String fieldName) {
-            return deniedFields.contains(fieldName);
-        }
-        
-        public Set<String> getAllowedFields() {
-            return Collections.unmodifiableSet(allowedFields);
-        }
-        
-        public Set<String> getDeniedFields() {
-            return Collections.unmodifiableSet(deniedFields);
-        }
-    }
-
-    /**
-     * 字段权限信息
-     *
-     * @param fieldName Getters
-     */
-        public record FieldPermissionInfo(@Getter String fieldName, @Getter String className,
-                                          @Getter FieldPermission annotation, boolean hasPermission) {
-    }
 }
